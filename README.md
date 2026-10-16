@@ -1,55 +1,58 @@
-# Mintlify Starter Kit
+# Alphacast documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+This repository contains the source for [learn.alphacast.io](https://learn.alphacast.io/introduction), the public documentation for [Alphacast](https://www.alphacast.io).
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+Use the documentation to learn how to manage datasets and repositories, connect data providers, build pipelines, and work with Alphacast through the API, Python SDK, and Model Context Protocol (MCP).
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+## Read the documentation
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
+- [Get started](https://learn.alphacast.io/introduction)
+- [API reference](https://learn.alphacast.io/api/overview)
+- [Python SDK](https://learn.alphacast.io/python-sdk/overview)
+- [MCP](https://learn.alphacast.io/mcp/overview)
+- [Pipeline steps](https://learn.alphacast.io/steps/overview)
 
-## AI-assisted writing
+## Repository structure
 
-Set up your AI coding tool to work with Mintlify:
+The site uses [Mintlify](https://www.mintlify.com/docs). Pages are MDX files with YAML frontmatter.
+
+| Path | Contents |
+| --- | --- |
+| `docs.json` | Site configuration, navigation, colors, and navbar links |
+| `introduction.mdx`, `quickstart.mdx`, `authentication.mdx` | Getting started guides |
+| `concepts/`, `uploading/`, `providers/` | Core concepts, data uploads, and data providers |
+| `api/` | HTTP API reference |
+| `python-sdk/` | Python SDK guides and reference |
+| `mcp/` | MCP setup, tools, and prompting guides |
+| `steps/` | Pipeline step documentation |
+| `images/` | Documentation images |
+| `.mintignore` | Content excluded from the published site |
+
+Some files are retained as unpublished content. Check both `docs.json` and `.mintignore` before adding pages to the site.
+
+## Preview locally
+
+Install Node.js 20.17.0 or later and the [Mintlify CLI](https://www.mintlify.com/docs/cli/install), then run these commands from the repository root:
 
 ```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
-
-## Development
-
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
-```
-
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
+npm install -g mint
 mint dev
 ```
 
-View your local preview at `http://localhost:3000`.
+Open `http://localhost:3000` to preview the site. Before submitting documentation changes, check internal links:
 
-## Publishing changes
+```bash
+mint broken-links
+```
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+## Contribute
 
-## Need help?
+Found an error or a missing explanation? [Open an issue](https://github.com/alphacastio/mintlify-docs/issues) or submit a pull request with your proposed change.
 
-### Troubleshooting
+Keep changes focused, verify technical examples against the behavior they describe, and preview affected pages. Never include API keys, credentials, or private customer data in examples, screenshots, or issues.
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for writing guidelines and [AGENTS.md](AGENTS.md) for instructions for coding agents.
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+## Publishing
+
+Mintlify hosts the documentation and publishes changes from the configured deployment branch. Submit changes through a pull request for review; merging into the deployment branch can update the live site.
