@@ -28,6 +28,16 @@
             ]
           },
           {
+            "group": "Use Alphacast Workspace",
+            "pages": [
+              "workspace/find-and-download-data",
+              "workspace/analyze-with-ai",
+              "workspace/share-a-chart",
+              "workspace/first-pipeline",
+              "workspace/month-end-prices"
+            ]
+          },
+          {
             "group": "Core Concepts",
             "pages": [
               "concepts/repositories",

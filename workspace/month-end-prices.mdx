@@ -1,0 +1,31 @@
+---
+title: "Turn daily prices into a month-end spreadsheet"
+sidebarTitle: "Build a month-end price table"
+description: "Use a pipeline to turn daily quotes into one row per month, with closing prices side by side for two tickers."
+---
+
+A monthly report needs one number per ticker per month. This pipeline takes daily quotes, gives each ticker its own column, and keeps the last available close in each month. Use two tickers that trade on the same calendar for this example.
+
+## Load daily prices
+
+Choose **Create** → **Pipeline** and select [Fetch Financial Data](/steps/fetch-yahoo) as the source. Enter `AAPL, MSFT`, choose a lookback that covers at least two complete months, and use daily observations. Save and preview the step. Find **Date**, **Ticker** and **Close**. Pick a completed month and note each ticker's close on the last trading day so you can check the final table.
+
+## Put the two tickers side by side
+
+Add [Long to Wide (Unstack)](/steps/unstack-dataset). Select **Ticker** as the entity to unstack and **Close** as the value column. Save and preview. You should now see one row per trading date, with **Close - AAPL** and **Close - MSFT** in separate columns.
+
+<Frame caption="A daily preview after unstacking. This example includes two additional tickers.">
+  <img src="/images/steps/unstack-result.png" alt="Daily dates in rows with the closing prices of AAPL, GOOG, MSFT and QQQ in separate columns" />
+</Frame>
+
+## Keep the last close in each month
+
+Add [Change Frequency](/steps/resample), set the output frequency to monthly, and select **Last** as the downscaling method. **Average** would answer a different question: the mean daily close during the month. Save the step and compare a completed month's values to the daily observations you noted earlier.
+
+<Frame caption="Last is available in the Downscaling method menu.">
+  <img src="/images/steps/resample-3.png" alt="Downscaling options including Average, Sum, Min, Max, Last and First" />
+</Frame>
+
+## Export the report
+
+Add [Data Snapshot](/steps/data-snapshot) after the frequency change, save, and choose **Run Pipeline**. When the run finishes, open the snapshot and download **XLSX**. Check that the spreadsheet contains one row per month and one closing-price column per ticker. If it includes the current partial month, label it as month-to-date or use [Filter Dates](/steps/filter-dates) before the snapshot to end the report at the last completed month.
