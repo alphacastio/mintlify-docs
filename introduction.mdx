@@ -1,38 +1,67 @@
 ---
-title: "Alphacast: Financial Data Analytics for Everyone"
-description: "Alphacast is a financial data analytics platform for managing datasets and connecting to global data providers via API."
+title: "Welcome to Alphacast"
+sidebarTitle: "Introduction"
+description: "Alphacast turns economic and financial data into answers, automated workflows, and data products that stay current."
 ---
 
-Alphacast is a financial data analytics platform that lets you collect and distribute economic and financial data at scale. Whether you are pulling macro indicators from the Federal Reserve or uploading your own proprietary datasets, Alphacast gives you a single API to manage the full data lifecycle — from ingestion through to download.
+Alphacast is a platform for economic and financial data. It brings 9,000+ curated datasets from 600+ sources into one place, with particular depth in Latin America. You can query that data from your code or your AI agent, combine it with your own, and build pipelines that keep the results up to date.
 
-## What you can do with Alphacast
+These docs are for people who want to **work with Alphacast programmatically**: through the REST API, the Python SDK, or the MCP server. You can also explore the same catalog from the [web app](https://www.alphacast.io/explore) without writing any code.
 
-With the Alphacast API you can:
-
-- **Manage datasets** — create, update, and delete datasets within organized repositories
-- **Connect to 30+ external data providers** — including FRED, BLS, World Bank, OECD, IMF, BIS, ECB, Eurostat, and central banks across Latin America, Europe, and Asia. Browse the live catalog at [alphacast.io/explore/apis](https://www.alphacast.io/explore/apis).
-- **Download data in multiple formats** — export any dataset as CSV, JSON, XLSX, or TSV
-
-All API requests are authenticated with an API key that you generate from your account settings at [alphacast.io](https://alphacast.io). Requests can be authenticated via HTTP Basic Auth or a query parameter — both approaches are covered in the authentication guide.
-
-The base URL for all API requests is `https://api.alphacast.io`.
-
-## Get started
+## Choose how to connect
 
 <CardGroup cols={2}>
-  <Card title="Quickstart" icon="bolt" href="/quickstart">
-    Create a repository, upload a dataset, and download data in minutes.
+  <Card title="AI agents (MCP)" icon="robot" href="/mcp/quickstart">
+    Connect Claude, Codex, Cursor, or another MCP client. Your agent can search the catalog, read data, and build pipelines from a prompt.
   </Card>
-  <Card title="Authentication" icon="key" href="/authentication">
-    Learn how to authenticate every request with your API key.
+  <Card title="Python SDK" icon="python" href="/python-sdk/quickstart">
+    Load datasets into a pandas DataFrame, and publish your results back to Alphacast from a script or notebook.
   </Card>
-  <Card title="Repositories" icon="folder" href="/concepts/repositories">
-    Understand how repositories organize your datasets and control access.
+  <Card title="REST API" icon="code" href="/quickstart">
+    Create repositories, upload files, and download data as CSV, JSON, XLSX, or TSV from any language or tool.
   </Card>
-  <Card title="API reference" icon="code" href="/api/overview">
-    Explore every endpoint, parameter, and response schema.
-  </Card>
-  <Card title="Python SDK" icon="python" href="/python-sdk/overview">
-    Manage repositories and datasets directly from Python — no HTTP required.
+  <Card title="Pipelines" icon="diagram-project" href="/steps/overview">
+    Chain steps that import, reshape, and transform data, then publish it as a dataset, chart, or table.
   </Card>
 </CardGroup>
+
+## What you can do
+
+### Find data
+
+Search the curated Alphacast catalog, which covers areas such as economic activity, prices, labor, fiscal and monetary policy, the external sector, and markets. Datasets are cleaned, structured, and maintained, and they keep a reference to their source.
+
+When you need something outside the catalog, [data providers](/providers/overview) let you query 30+ external sources through one interface, including FRED, the World Bank, the IMF, the OECD, Eurostat, and central banks such as Banxico, BCRA, and BCRP. Some providers require your own API key.
+
+### Add your own data
+
+[Upload your own files](/uploading/overview) to a repository and use them alongside the catalog, with the same API.
+
+### Transform it once, keep it current
+
+A [pipeline](/steps/overview) records every step between the source data and your final output. When a source dataset updates, the pipeline can run again, so the datasets and charts built on it stay current without manual re-exports. You can apply [economic transformations](/steps/transform), [change frequency](/steps/resample), [merge datasets](/steps/merge), run [seasonal adjustment](/steps/arima-sa), or [describe a transformation to AI](/steps/ai-transform).
+
+### Use it where you work
+
+Pull data into notebooks, spreadsheets, BI tools, applications, or AI agents. If a tool can call a REST API, it can read from Alphacast.
+
+## Core concepts
+
+| Concept | What it is |
+|---|---|
+| [Repository](/concepts/repositories) | A container for datasets that controls who can access them. |
+| [Dataset](/concepts/datasets) | A structured table of data, organized by date and by entities such as country or category. |
+| [Data provider](/concepts/data-providers) | An external source that you can query through Alphacast. |
+| [Pipeline](/steps/overview) | An ordered series of steps that turns source data into an output. |
+
+## Before you start
+
+You need an Alphacast account. The REST API and Python SDK use an [API key](/authentication). The MCP server supports [browser sign-in or an API key](/mcp/authentication), depending on how you connect.
+
+<Note>
+  The data you can download, your monthly volume, and your programmatic access depend on your plan. See [pricing](https://www.alphacast.io/pricing) for current limits.
+</Note>
+
+## Need more than self-serve?
+
+Our team can build datasets, connectors, integrations, dashboards, and AI agents with you. See [how we work with you](https://www.alphacast.io/product/delegate), or write to [hello@alphacast.io](mailto:hello@alphacast.io).
