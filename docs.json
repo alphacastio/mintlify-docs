@@ -2,6 +2,10 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "luma",
   "name": "Alphacast",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
   "favicon": "https://media.brand.dev/15f0bd29-8d2d-4c07-8834-a7a4aa2e20ce.png",
   "colors": {
     "primary": "#6549d0",
