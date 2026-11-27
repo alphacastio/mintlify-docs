@@ -1,0 +1,110 @@
+---
+title: "Get alerts about your data"
+sidebarTitle: "Alerts"
+description: "Set up a pipeline alert, choose how it is delivered, and pause or resume it."
+---
+
+A pipeline alert tells you when your data meets a condition, such as inflation going above a threshold. It is a pipeline with a [Send a notification](/steps/notification) step.
+
+To hear about every new version of a dataset, with no condition, follow the dataset instead. See [notifications](/notifications).
+
+## Before you start
+
+You need:
+
+- A [plan](https://www.alphacast.io/pricing) that can create content, to build a new pipeline, and that allows data downloads.
+- Edit access to the pipeline's repository, and access to the source data.
+
+## Create an alert with Alphacast AI
+
+<Steps>
+  <Step title="Ask for it">
+    In [Alphacast AI](/ai), describe the data and the condition. For example: "Email me when Argentina's latest monthly inflation is above 3%."
+  </Step>
+  <Step title="Review the proposal">
+    Alphacast AI proposes the pipeline steps, ending with a notification. Check the source, the filters and the condition.
+  </Step>
+  <Step title="Approve it">
+    Click **Approve**. Saving the notification subscribes you.
+  </Step>
+</Steps>
+
+If you ask from the chat inside a pipeline editor, the step is added to that pipeline.
+
+## Create an alert in the editor
+
+<Steps>
+  <Step title="Prepare the data">
+    Create or open a pipeline. Import the data, then filter and transform it until it holds what your condition needs.
+  </Step>
+  <Step title="Add the notification">
+    Add the **Send a notification** step. Fill in **Notification name** and **When should we notify you?**, then press **Save**.
+  </Step>
+  <Step title="Test it">
+    Click **Test with current data** to see the decision and the message. Testing never sends it.
+  </Step>
+</Steps>
+
+<Warning>
+  Saving enables the alert. A normal pipeline run can send it right away.
+</Warning>
+
+## When it is evaluated
+
+An alert is evaluated when its pipeline [runs](/pipelines/runs). It has no schedule of its own, and you can't set one in the step or by asking Alphacast AI. Check what makes your pipeline run before you rely on an alert.
+
+If the data and configuration haven't changed, a run can skip the notification.
+
+Pipelines that import external data run automatically once a day.
+
+## Choose delivery channels
+
+After you save, the step shows **Delivery channels**:
+
+- **Email · Notification creator** is on by default. It sends to your registered address.
+- Each of your webhook destinations appears as a checkbox. Add destinations with **Webhook settings**. See [webhooks](/connect/webhooks).
+
+Sent alerts also appear in the bell menu with their subject and time, linked to the pipeline step.
+
+## Pause, resume and manage alerts
+
+Only the recipient can pause or resume an alert.
+
+- In the step, click **Pause notification** or **Resume notification**.
+- To see your alerts in the current Workspace, open [**Settings > Notifications**](https://www.alphacast.io/settings?tab=Notifications). You can also use the settings icon in the bell menu. This tab lists your followed datasets too.
+
+If you edit a paused alert, it stays paused. Changes to an active alert apply to the next run.
+
+## Understand run results
+
+The pipeline run log reports what happened:
+
+| Log message | Meaning |
+|---|---|
+| **Notification generated · email queued** | The condition was met and the email is on its way. Queued does not confirm that it reached your inbox. |
+| **No notification needed.** | The condition was not met. |
+| **Notification not sent: insufficient information.** | The data wasn't enough to decide. |
+| **Notification skipped: data and configuration have not changed.** | Nothing new to evaluate. |
+| **Notification skipped: the notification is paused.** | Resume it to receive it again. |
+| **Notification not sent: no active delivery channels.** | Turn on email or a webhook. |
+
+With webhooks, the message also says that webhook deliveries were recorded.
+
+## If you don't receive an alert
+
+1. Check that its status is **Active**.
+2. Check that the pipeline ran after the data changed, and that no earlier step failed.
+3. Run **Test with current data** and read the reason.
+4. Check your delivery channels and your spam folder.
+5. Check that you still have the access listed in [Who receives it](/steps/notification#who-receives-it).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Send a notification" icon="bell" href="/steps/notification">
+    Field reference and limits.
+  </Card>
+  <Card title="Run a pipeline" icon="play" href="/pipelines/runs">
+    See when pipelines run and how to check a run.
+  </Card>
+</CardGroup>

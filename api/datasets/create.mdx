@@ -1,73 +1,46 @@
 ---
-title: "POST /datasets — Create a Dataset"
+title: "POST /datasets — Create a dataset"
 sidebarTitle: "Create a dataset"
-description: "Create a new dataset in a repository to store tabular or time-series data. Requires name and repositoryId. Optionally add source metadata."
+description: "Create an empty dataset in a repository."
 ---
 
-Creating a dataset registers a named container within a repository where you can then upload tabular or time-series data. You must have at least `Write` permission on the target repository. Once created, upload data to the dataset using `PUT /datasets/{id}/data`.
+Creates an empty dataset. Then [upload data](/api/datasets/upload) to it.
 
-## Authentication
+```
+POST https://api.alphacast.io/datasets
+```
 
-Authenticate using HTTP Basic Auth. Pass your API key as the username and leave the password empty. You must have `Write` permission on the target repository.
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-## Request
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-**Method:** `POST`  
-**URL:** `https://api.alphacast.io/datasets`
+Requires [Basic Auth](/authentication), `Write` permission on the repository, and a plan that lets you create assets. See [pricing](https://www.alphacast.io/pricing).
 
 ## Body parameters
 
-<ParamField body="name" type="string" required>
-  The display name for the new dataset. Must be a non-empty string.
-</ParamField>
+<ParamField body="name" type="string" required>Dataset name. It must be unique in the repository. Extra spaces are removed.</ParamField>
+<ParamField body="repositoryId" type="integer" required>Repository ID.</ParamField>
+<ParamField body="description" type="string">Description of the data.</ParamField>
+<ParamField body="sourceName" type="string">Who publishes the original data.</ParamField>
+<ParamField body="sourceUrl" type="string">Link to the original data.</ParamField>
 
-<ParamField body="repositoryId" type="integer" required>
-  The numeric ID of the repository in which to create the dataset. You must have `Write` permission on this repository.
-</ParamField>
+<span id="param-id" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField body="description" type="string">
-  A human-readable description of the dataset's contents, intended audience, or methodology.
-</ParamField>
+<span id="param-name-1" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField body="sourceUrl" type="string">
-  The URL of the original data source, for provenance tracking.
-</ParamField>
+<span id="param-repository-id-1" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField body="sourceName" type="string">
-  The name of the organization or publication that originally produced this data.
-</ParamField>
+<span id="param-description-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-source-name-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-source-url-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-permission" style={{ scrollMarginTop: "8rem" }} />
 
 ## Response
 
-Returns `201 Created` with the newly created dataset object.
-
-<ResponseField name="id" type="integer">
-  The numeric ID assigned to the new dataset. Use this in all subsequent requests.
-</ResponseField>
-
-<ResponseField name="name" type="string">
-  The name you provided.
-</ResponseField>
-
-<ResponseField name="repositoryId" type="integer">
-  The repository the dataset was created in.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  The description you provided, or `null` if omitted.
-</ResponseField>
-
-<ResponseField name="sourceName" type="string">
-  The source name you provided, or `null` if omitted.
-</ResponseField>
-
-<ResponseField name="sourceUrl" type="string">
-  The source URL you provided, or `null` if omitted.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your permission level on the new dataset. Will be `Admin` for datasets you create.
-</ResponseField>
+Returns `201` with `id`, `name`, `createdAt`, and `repositoryId`. The response does not include the description or source fields.
 
 ## Example
 
@@ -80,7 +53,6 @@ curl -u YOUR_API_KEY: \
   -d '{
     "name": "US GDP Quarterly",
     "repositoryId": 45,
-    "description": "Quarterly US GDP figures from BEA",
     "sourceName": "Bureau of Economic Analysis",
     "sourceUrl": "https://www.bea.gov/data/gdp"
   }'
@@ -92,14 +64,9 @@ import requests
 response = requests.post(
     "https://api.alphacast.io/datasets",
     auth=("YOUR_API_KEY", ""),
-    json={
-        "name": "US GDP Quarterly",
-        "repositoryId": 45,
-        "description": "Quarterly US GDP figures from BEA",
-        "sourceName": "Bureau of Economic Analysis",
-        "sourceUrl": "https://www.bea.gov/data/gdp",
-    },
+    json={"name": "US GDP Quarterly", "repositoryId": 45},
 )
+response.raise_for_status()
 dataset = response.json()
 ```
 
@@ -110,15 +77,13 @@ const response = await fetch("https://api.alphacast.io/datasets", {
     Authorization: "Basic " + btoa("YOUR_API_KEY:"),
     "Content-Type": "application/json",
   },
-  body: JSON.stringify({
-    name: "US GDP Quarterly",
-    repositoryId: 45,
-    description: "Quarterly US GDP figures from BEA",
-    sourceName: "Bureau of Economic Analysis",
-    sourceUrl: "https://www.bea.gov/data/gdp",
-  }),
+  body: JSON.stringify({ name: "US GDP Quarterly", repositoryId: 45 }),
 });
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
 const dataset = await response.json();
+console.log(dataset.id);
 ```
 
 </RequestExample>
@@ -129,14 +94,16 @@ const dataset = await response.json();
 {
   "id": 123,
   "name": "US GDP Quarterly",
-  "repositoryId": 45,
-  "description": "Quarterly US GDP figures from BEA",
-  "sourceName": "Bureau of Economic Analysis",
-  "sourceUrl": "https://www.bea.gov/data/gdp",
-  "permission": "Admin",
-  "frequency": null,
-  "minDate": null,
-  "maxDate": null
+  "createdAt": "2026-01-10T12:00:00",
+  "repositoryId": 45
+}
+```
+
+```json 409
+{
+  "message": "The name 'US GDP Quarterly' is already taken by dataset 99",
+  "code": "dataset_name_taken",
+  "details": { "name": "US GDP Quarterly", "repositoryId": 45, "existingDatasetId": 99 }
 }
 ```
 
@@ -145,10 +112,8 @@ const dataset = await response.json();
 ## Error responses
 
 | Status | Cause |
-|--------|-------|
-| `403 Forbidden` | The repository does not exist, or you do not have `Write` permission on it. |
-| `409 Conflict` | A dataset with a conflicting configuration already exists. |
-
-<Tip>
-  After creating a dataset, use `PUT /datasets/{id}/data` to upload your first CSV file and populate the dataset with rows.
-</Tip>
+|---|---|
+| `400` | A required field is missing or invalid. |
+| `402` | Your plan does not let you create assets. |
+| `403` | The repository does not exist for you, or you cannot write to it. |
+| `409` | The name is already taken, or the dataset could not be created. |

@@ -1,156 +1,179 @@
 ---
-title: "PUT /datasets/{id}/data — Upload Data to a Dataset"
+title: "PUT /datasets/{id}/data — Upload data"
 sidebarTitle: "Upload data"
-description: "Upload a CSV or gzip-compressed CSV file to add, update, or replace dataset rows. Supports a column manifest, conflict resolution flags, and async processing."
+description: "Upload a CSV file to a dataset and check the result of the upload process."
 ---
 
-Use this endpoint to load rows into a dataset by uploading a CSV file. The upload is processed asynchronously: the request returns immediately with a process record, and the rows become available in the dataset once the background job completes.
+Uploads a CSV file. Processing happens in the background. See [Uploading data](/uploading/overview) for the full workflow.
 
-<Note>
-  This page is the API reference. For the concepts behind the request — what a manifest is, what gets validated, and how the conflict-resolution flags interact — see the [Uploading Data](/uploading/overview) section.
-</Note>
+```
+PUT https://api.alphacast.io/datasets/{dataset_id}/data
+Content-Type: multipart/form-data
+```
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-Authenticate using HTTP Basic Auth. Pass your API key as the username and leave the password empty. You must have at least `Write` permission on the target dataset.
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-## Request
-
-**Method:** `PUT`  
-**URL:** `https://api.alphacast.io/datasets/{dataset_id}/data`  
-**Content-Type:** `multipart/form-data`
+Requires [Basic Auth](/authentication) and `Write` permission on the dataset.
 
 ## Path parameters
 
-<ParamField path="dataset_id" type="integer" required>
-  The numeric ID of the dataset to upload data into.
-</ParamField>
+<ParamField path="dataset_id" type="integer" required>Dataset ID.</ParamField>
 
 ## Form fields
 
-<ParamField body="data" type="file" required>
-  The CSV file to upload. Accepts plain `.csv` files or gzip-compressed `.csv.gz` files. The first row must be a header row containing column names.
-</ParamField>
-
-<ParamField body="manifest" type="string">
-  A JSON string declaring each column's data type and entity flag. Required on the dataset's first upload (or set the manifest beforehand from the web UI). On subsequent uploads it is optional — pass it only when you want to replace the dataset's stored manifest. See the [Manifest reference](/uploading/manifest) for the full schema.
-</ParamField>
+<ParamField body="data" type="file" required>A CSV file with a header row. You can compress it with gzip. The request limit is 80 MB.</ParamField>
+<ParamField body="manifest" type="string">A JSON array that describes the columns. See [Manifest](/uploading/manifest). The first upload to a new dataset needs a manifest, unless you already [initialized the columns](/uploading/overview#before-the-first-upload).</ParamField>
 
 ## Query parameters
 
-<ParamField query="deleteMissingFromDB" type="boolean" default="false">
-  When `true`, rows present in the existing dataset but absent from the upload are deleted. Use this to perform a full replacement. Forced to `false` if the dataset's manifest is locked. See [Upload modes](/uploading/validation#upload-modes).
-</ParamField>
+<ParamField query="deleteMissingFromDB" type="boolean" default="false">Delete existing data that is not in the file.</ParamField>
+<ParamField query="onConflictUpdateDB" type="boolean" default="false">Overwrite existing values with the values in the file.</ParamField>
+<ParamField query="acceptNewColumns" type="boolean">Allow the file to add new columns.</ParamField>
 
-<ParamField query="onConflictUpdateDB" type="boolean" default="false">
-  When `true`, rows whose entity key matches an existing row are updated with the new value. When `false`, the existing value is kept and the upload's value is discarded for those rows.
-</ParamField>
-
-<ParamField query="acceptNewColumns" type="boolean" default="false">
-  When `true`, columns in the CSV that are not in the dataset's existing schema are added. When `false`, unknown columns cause the upload to fail with `Unknown column(s): ...`. Forced to `false` if the manifest is locked.
-</ParamField>
+See [Upload modes](/uploading/validation#upload-modes).
 
 ## Response
 
-Returns `201 Created` with a process object describing the background upload job.
+Returns `201` with the upload process.
 
-<ResponseField name="id" type="string">
-  The ID of the upload process. Use this to poll the dataset processes endpoint and inspect status, stats, and any error message.
-</ResponseField>
+<ResponseField name="id" type="integer">Process ID.</ResponseField>
+<ResponseField name="status" type="string">Starts at `Requested`.</ResponseField>
+<ResponseField name="createdAt" type="string">Creation time.</ResponseField>
+<ResponseField name="datasetId" type="integer">Dataset ID.</ResponseField>
 
-<ResponseField name="status" type="string">
-  Initial status — typically `Requested`. Transitions to `Processing` → `Processed` (or `Error`) as the background worker runs. See the [upload lifecycle](/uploading/overview#the-upload-lifecycle).
-</ResponseField>
+## Check an upload process
+
+```
+GET /datasets/{dataset_id}/processes/{process_id}
+GET /datasets/{dataset_id}/processes
+```
+
+Both require `Write` permission. The list returns the 100 newest processes, newest first. Each process has `id`, `datasetId`, `status`, `statusDescription`, `deleteMissingFromDB`, `onConflictUpdateDB`, `createdAt`, and `processedAt`.
+
+Check until `status` is `Processed` or `Error`.
 
 ## Example
-
-Upload a CSV file with a manifest:
 
 <RequestExample>
 
 ```bash cURL
 curl -u YOUR_API_KEY: \
   -X PUT https://api.alphacast.io/datasets/123/data \
-  -F "data=@gdp_data.csv" \
-  -F 'manifest=[{"sourceName":"Date","dataType":"Date","isEntity":true},{"sourceName":"Country","dataType":"String","isEntity":true},{"sourceName":"GDP","dataType":"Decimal","isEntity":false}]'
+  -F "data=@gdp.csv" \
+  -F 'manifest=[{"sourceName":"Date","dataType":"Date","isEntity":true,"dateFormat":"%Y-%m-%d"},{"sourceName":"Country","dataType":"String","isEntity":true},{"sourceName":"GDP","dataType":"Decimal","isEntity":false}]'
 ```
 
 ```python Python
 import json
+import time
 import requests
 
+auth = ("YOUR_API_KEY", "")
+base = "https://api.alphacast.io/datasets/123"
+
 manifest = [
-    {"sourceName": "Date", "dataType": "Date", "isEntity": True},
+    {"sourceName": "Date", "dataType": "Date", "isEntity": True, "dateFormat": "%Y-%m-%d"},
     {"sourceName": "Country", "dataType": "String", "isEntity": True},
     {"sourceName": "GDP", "dataType": "Decimal", "isEntity": False},
 ]
 
-with open("gdp_data.csv", "rb") as f:
+with open("gdp.csv", "rb") as f:
     response = requests.put(
-        "https://api.alphacast.io/datasets/123/data",
-        auth=("YOUR_API_KEY", ""),
-        files={"data": ("gdp_data.csv", f, "text/csv")},
+        f"{base}/data",
+        auth=auth,
+        files={"data": ("gdp.csv", f, "text/csv")},
         data={"manifest": json.dumps(manifest)},
     )
-process = response.json()
+response.raise_for_status()
+process_id = response.json()["id"]
+
+for _ in range(120):  # wait up to 10 minutes
+    check = requests.get(f"{base}/processes/{process_id}", auth=auth)
+    check.raise_for_status()
+    process = check.json()
+    if process["status"] in ("Processed", "Error"):
+        break
+    time.sleep(5)
+
+print(process["status"], process["statusDescription"])
 ```
 
 ```javascript Node.js
-import fs from "node:fs";
+import { readFile } from "node:fs/promises";
+
+const headers = { Authorization: "Basic " + btoa("YOUR_API_KEY:") };
+const base = "https://api.alphacast.io/datasets/123";
 
 const manifest = [
-  { sourceName: "Date", dataType: "Date", isEntity: true },
+  { sourceName: "Date", dataType: "Date", isEntity: true, dateFormat: "%Y-%m-%d" },
   { sourceName: "Country", dataType: "String", isEntity: true },
   { sourceName: "GDP", dataType: "Decimal", isEntity: false },
 ];
 
+// fetch sets the multipart Content-Type for FormData
 const form = new FormData();
-form.append("data", new Blob([fs.readFileSync("gdp_data.csv")]), "gdp_data.csv");
+form.append("data", new Blob([await readFile("gdp.csv")], { type: "text/csv" }), "gdp.csv");
 form.append("manifest", JSON.stringify(manifest));
 
-const response = await fetch("https://api.alphacast.io/datasets/123/data", {
-  method: "PUT",
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-  body: form,
-});
-const process = await response.json();
+const response = await fetch(`${base}/data`, { method: "PUT", headers, body: form });
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
+const { id } = await response.json();
+
+let result;
+for (let i = 0; i < 120; i++) { // wait up to 10 minutes
+  const check = await fetch(`${base}/processes/${id}`, { headers });
+  if (!check.ok) throw new Error(`${check.status}: ${await check.text()}`);
+  result = await check.json();
+  if (["Processed", "Error"].includes(result.status)) break;
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+}
+
+console.log(result.status, result.statusDescription);
 ```
 
 </RequestExample>
 
-Upload a gzip-compressed CSV and replace any existing row not present in the file:
+<ResponseExample>
+
+```json 201
+{
+  "id": 500,
+  "status": "Requested",
+  "createdAt": "2026-01-15T10:31:00",
+  "datasetId": 123
+}
+```
+
+```json 400
+{ "message": "Manifest is not correctly formatted" }
+```
+
+</ResponseExample>
+
+Replace the data with the content of a compressed file:
 
 ```bash
 curl -u YOUR_API_KEY: \
   -X PUT "https://api.alphacast.io/datasets/123/data?deleteMissingFromDB=true&onConflictUpdateDB=true" \
-  -F "data=@gdp_data.csv.gz"
+  -F "data=@gdp.csv.gz"
 ```
 
-Upload a plain CSV and allow new columns to extend the schema:
-
-```bash
-curl -u YOUR_API_KEY: \
-  -X PUT "https://api.alphacast.io/datasets/123/data?acceptNewColumns=true" \
-  -F "data=@gdp_data.csv"
-```
+<Warning>
+  `deleteMissingFromDB=true` permanently removes data that is not in the file. Check that the file is complete.
+</Warning>
 
 ## Error responses
 
-The API surfaces validation errors via the upload process record (status `Error`, `statusDescription` set to the message). The HTTP response itself uses standard codes:
-
 | Status | Cause |
 |---|---|
-| `400 Bad Request` | The manifest is malformed, or required form fields are missing. |
-| `401 Unauthorized` | Missing or invalid API key. |
-| `403 Forbidden` | You do not have `Write` permission on this dataset. |
-| `404 Not Found` | No dataset with the given ID exists or is accessible to your account. |
+| `400` | The file is missing, the manifest is invalid, or the columns are not initialized. |
+| `401` | Missing or invalid API key. |
+| `403` | The dataset does not exist for you, or you cannot write to it. |
+| `413` | The request is over 80 MB. |
+| `503` | The service is temporarily unavailable. If the body has a `processId`, processing may have started. Check that process before you upload again. |
 
-For row-level validation failures (`Data has not Date column`, duplicate rows, out-of-range Short Integer, etc.) the HTTP call returns `201` with a process record, and the failure surfaces when the process transitions to `Error`. See [Validation rules](/uploading/validation#validation-rules) for the complete list.
-
-<Warning>
-  When `deleteMissingFromDB` is `true`, any row in the existing dataset whose key does not appear in the uploaded file is permanently deleted. Verify your file contains every row you wish to keep before setting this flag.
-</Warning>
-
-<Note>
-  Uploads are processed asynchronously. The API returns immediately with a process object, and the data becomes available in the dataset once the background job completes. Identical re-uploads (same content + same flags as the previous successful run) are detected via a content hash and skipped — see [Idempotency](/uploading/overview#idempotency-identical-content-is-skipped).
-</Note>
+Errors in the data do not change the `201` response. They appear in the process, with status `Error` and a `statusDescription`.

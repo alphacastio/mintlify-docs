@@ -41,7 +41,7 @@ Claude Code launches the Alphacast MCP server as a local subprocess via `npx`. Y
 
 ### CLI (recommended)
 
-Run this from any directory inside your project. The server is added at the user scope by default — pass `--scope project` to share it with collaborators via a checked-in `.mcp.json`.
+Run this from any directory inside your project. By default, Claude Code adds the server for you in the current project only. Pass `--scope user` to use it in all your projects, or `--scope project` to share it with collaborators through a checked-in `.mcp.json`.
 
 ```bash
 claude mcp add alphacast -e ALPHACAST_API_KEY=YOUR_API_KEY -- npx -y @alphacast/mcp
@@ -89,7 +89,7 @@ Open a new Claude Code session and run:
 /mcp
 ```
 
-The `alphacast` server should appear with 32 tools and a green `connected` status. If it shows red, run `claude mcp list` to inspect the configured command and environment.
+The `alphacast` server should show a `connected` status and list its tools (35, or 26 if your Workspace has catalog exploration turned off). If it shows red, run `claude mcp list` to inspect the configured command and environment.
 
 Try a prompt that hits a read-only tool to confirm the connection end-to-end:
 

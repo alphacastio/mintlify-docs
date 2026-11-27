@@ -1,25 +1,22 @@
 ---
 title: "Authentication"
-description: "How the Alphacast Python SDK authenticates requests with your API key, plus best practices for storing the key safely."
+sidebarTitle: "Authentication"
+description: "How to get your API key, use it with the Python SDK, and store it safely."
 ---
 
-The Alphacast Python SDK authenticates every request with your personal API key. Internally the SDK uses HTTP Basic Auth — your key is sent as the username with an empty password, exactly as documented for the [REST API](/authentication). You only need to provide the key once when you create the client.
+<span id="how-the-sdk-uses-your-key" style={{ scrollMarginTop: "8rem" }} />
+
+The SDK uses your Alphacast API key. You give it once, when you create the client.
 
 <Warning>
-  Your API key grants full access to your Alphacast account. Do not commit it to source control, share it in chat or screenshots, or embed it in client-side code that ships to users.
+  Treat your API key like a password. Do not commit it, share it, or put it in client-side code.
 </Warning>
 
 ## Get your API key
 
-1. Sign in at [alphacast.io](https://www.alphacast.io/api/auth/login).
-2. Click your user avatar in the left sidebar to open **Account Settings**.
-3. Find or generate your key under the **API Key** section.
-
-Treat the key like a password — anyone holding it can read, upload, and delete data on your behalf.
+Open [your settings](https://www.alphacast.io/settings). Next to **API Key**, click **Show Key**.
 
 ## Initialize the client
-
-Pass the key to the `Alphacast` constructor. Every method called on the resulting client uses that key:
 
 ```python
 from alphacast import Alphacast
@@ -27,20 +24,11 @@ from alphacast import Alphacast
 alphacast = Alphacast("YOUR_API_KEY")
 ```
 
-The client stores the key in memory and re-uses it for every request. If you need to switch accounts in the same script, instantiate a second client.
+To use a second key, create a second client.
 
-## Recommended: read from an environment variable
+<span id="recommended-read-from-an-environment-variable" style={{ scrollMarginTop: "8rem" }} />
 
-Hardcoding API keys in your code makes it easy to leak them by accident. Read the key from an environment variable instead:
-
-```python
-import os
-from alphacast import Alphacast
-
-alphacast = Alphacast(os.environ["ALPHACAST_API_KEY"])
-```
-
-Set the variable in your shell:
+## Read the key from an environment variable
 
 <CodeGroup>
 
@@ -54,12 +42,20 @@ $env:ALPHACAST_API_KEY = "your-key-here"
 
 </CodeGroup>
 
-## Loading from a `.env` file
+```python
+import os
+from alphacast import Alphacast
 
-The SDK declares `python-dotenv` as a dependency, so you can keep your key in a local `.env` file:
+alphacast = Alphacast(os.environ["ALPHACAST_API_KEY"])
+```
+
+<span id="loading-from-a-env-file" style={{ scrollMarginTop: "8rem" }} />
+
+## Use a .env file
+
+The SDK installs `python-dotenv`. Add a `.env` file:
 
 ```
-# .env
 ALPHACAST_API_KEY=your-key-here
 ```
 
@@ -73,24 +69,19 @@ alphacast = Alphacast(os.environ["ALPHACAST_API_KEY"])
 ```
 
 <Tip>
-  Add `.env` to your `.gitignore` so the file is never committed.
+  Add `.env` to your `.gitignore`.
 </Tip>
 
-## Errors
+<span id="errors" style={{ scrollMarginTop: "8rem" }} />
 
-If the API key is missing or invalid, the SDK raises an `Exception` whose message includes the HTTP status code returned by the server. The most common case is `401`:
+## Authentication errors
+
+Creating the client does not check the key. Read methods raise an exception on a failed request. For an invalid key, the message includes the status code:
 
 ```
 Exception: API failed with status code 401
 ```
 
-Common causes:
-- The key was mistyped or copied with leading/trailing whitespace.
-- The key was revoked or regenerated from the Alphacast UI.
-- The key belongs to an account that no longer has access to the requested resource (in which case you may also see `403`).
+Check that you copied the whole key without extra spaces and that it is your current key. In settings, **Reset** creates a new key. Scripts that use the old key can stop working.
 
-If you suspect your key has been exposed, regenerate it from your account settings. Regenerating immediately invalidates the old key.
-
-## How the SDK uses your key
-
-Internally, every method in the SDK calls `requests.get`, `requests.post`, `requests.put`, or `requests.delete` with `auth=HTTPBasicAuth(self.api_key, "")`. The Search endpoint is the one exception — it sends the key as an `apiKey` query parameter because the search endpoint lives on the workspace host (`alphacast.io`) rather than on `api.alphacast.io`. Both transports are equivalent in terms of authority — both grant the same access — but Basic Auth is preferred for everything that supports it because the credential travels in the `Authorization` header rather than in the URL.
+Some write methods and `search.datasets` behave differently. See [Check write results](/python-sdk/reference#check-write-results) and [Search](/python-sdk/search).

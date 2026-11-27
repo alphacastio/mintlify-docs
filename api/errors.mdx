@@ -1,199 +1,141 @@
 ---
-title: "API Error Codes and Troubleshooting"
-description: "Reference for every HTTP error code returned by the Alphacast API — 400, 401, 402, 403, 404, 409, 429, 500, 503, 504 — with causes, example responses, and fixes."
+title: "API errors and troubleshooting"
+sidebarTitle: "Errors"
+description: "Status codes, error body formats, and fixes for common Alphacast API errors."
 ---
 
-When an API request fails, Alphacast returns a standard HTTP error status code and, where possible, a JSON body that describes what went wrong. This page covers every error code you may encounter, what typically causes it, and how to fix it.
+The API uses standard HTTP status codes. Check the status code first.
 
-## Error response format
+<span id="error-response-format" style={{ scrollMarginTop: "8rem" }} />
 
-Most error responses follow this shape:
+## Error body formats
+
+Most errors return a `message` field:
 
 ```json
-{
-  "error": "Description of what went wrong"
-}
+{ "message": "Dataset 123 doesn't exist" }
 ```
 
-Some errors — particularly `401` and `500` — may return an empty body or a plain-text message depending on where in the request lifecycle the failure occurs.
+There are other formats:
 
-## Error codes
+| Case | Body |
+|---|---|
+| A required field is missing | `message` can be an object that names the field: `{"message": {"name": "..."}}` |
+| Some conflicts | `message`, plus `code` and `details` |
+| Provider endpoints, and some other endpoints | `{"error": "..."}` |
+| `401`, and some other errors | Plain text or HTML |
 
-### 400 Bad Request
+Do not assume that the body is JSON.
 
-Your request was understood but contained invalid or missing data.
+```python
+import requests
+
+response = requests.get(url, auth=(api_key, ""))
+
+if not response.ok:
+    try:
+        body = response.json()
+        detail = body.get("message") or body.get("error")
+    except ValueError:
+        detail = response.text
+    raise RuntimeError(f"{response.status_code}: {detail}")
+```
+
+<span id="error-codes" style={{ scrollMarginTop: "8rem" }} />
+
+## 400 Bad request
+
+The request has missing or invalid data. Common causes:
+
+- A required field is missing.
+- A [manifest](/uploading/manifest) is not correctly formatted.
+- A new dataset receives an upload before its [columns are initialized](/uploading/overview#before-the-first-upload).
+- `$filter` cannot be parsed or names a column that does not exist. Column names are case-sensitive.
+- A download uses an unsupported `$` parameter, or uses `$top` and `$last` together.
+
+## 401 Unauthorized
+
+The key is missing or invalid. Most endpoints require Basic Auth, with the key as the username.
+
+```bash
+# Correct
+curl -u YOUR_API_KEY: https://api.alphacast.io/repositories
+
+# Incorrect: the key is in the password field
+curl -u :YOUR_API_KEY https://api.alphacast.io/repositories
+```
+
+See [Authentication](/authentication).
+
+## 402 Payment required
+
+Your plan does not let you create or clone assets, such as datasets. See [pricing](https://www.alphacast.io/pricing).
 
 ```json
-{
-  "error": "repositoryId is required"
-}
+{ "message": "Your plan does not allow creating or cloning assets. Please upgrade your subscription." }
 ```
 
-**Common causes:**
+Downloads handle plan access differently. See [Plan access to data](/api/datasets/data#plan-access-to-data).
 
-- A required field is missing from the request body. For example, creating a dataset without providing `repositoryId`.
-- The request body is malformed JSON. Verify that your payload is valid and that you have set `Content-Type: application/json`.
-- An OData `$filter` expression references a column that does not exist in the dataset. The error message will look like:
+## 403 Forbidden
 
-  ```json
-  {
-    "error": "Filter contains invalid column(s): region"
-  }
-  ```
+You do not have the permission that the action requires. Many dataset and repository actions also return `403` when the ID does not exist or you cannot access it. Check both the ID and your permission.
 
-  Check the column names in the dataset exactly as they appear — column names are case-sensitive.
+## 404 Not found
 
----
+The resource does not exist or is not visible to you. Check the ID.
 
-### 401 Unauthorized
+## 409 Conflict
 
-Your request did not include valid credentials, or no credentials were provided at all.
+The request conflicts with the current state. Common causes:
 
-**Common causes and fixes:**
+| `code` | Meaning |
+|---|---|
+| `repository_name_taken` | The account already has a repository with that name. |
+| `dataset_name_taken` | The repository already has a dataset with that name. |
+| `dataset_published_by_pipeline` | A pipeline still publishes to the dataset. |
+| `dataset_has_series` | The dataset has series and cannot be deleted. |
+| `dataset_has_consumers` | Pipelines read the dataset. You can [confirm the deletion](/api/datasets/delete). |
+| `dataset_has_dependencies` | Other content still uses the dataset. |
 
-- **Missing API key** — Include your API key via HTTP Basic Auth or the `?apiKey=` query parameter. See the [API overview](/api/overview) for the correct format.
-- **Key in the wrong field** — When using Basic Auth, the API key must be the **username**, not the password. A common mistake is reversing these:
+Some `409` errors have no `code`.
 
-  ```bash
-  # Correct
-  curl -u YOUR_API_KEY: https://api.alphacast.io/repositories
+## 413 Request too large
 
-  # Incorrect — key is in the password field
-  curl -u :YOUR_API_KEY https://api.alphacast.io/repositories
-  ```
+The request body is over 80 MB. Compress your CSV with gzip or split the upload.
 
-- **Invalid or revoked key** — Verify your key in Alphacast account settings. If you recently regenerated it, update any integrations that use the old key.
+## 429 Too many requests
 
----
+On provider endpoints, this means that an external provider's limit was reached. Wait, then send fewer requests. For some providers you can [save your own key](/api/providers/list#save-a-provider-key).
 
-### 402 Payment Required
+## 500 Internal server error
 
-The action you attempted requires a higher membership tier than your current plan provides.
+Something failed on the server. Check your request against the endpoint page. If it is correct and the error continues, contact support. Include the endpoint and the time of the request.
 
-```json
-{
-  "error": "This action requires a membership upgrade."
-}
-```
+<span id="503-service-unavailable" style={{ scrollMarginTop: "8rem" }} />
 
-**Common causes:**
+## 501, 502, and 503
 
-- Creating an additional private repository beyond your plan's limit.
-- Fetching data from a paid-tier provider while on a free plan.
-- Downloading data that exceeds your plan's monthly export quota.
+| Status | Meaning |
+|---|---|
+| `501` | The provider does not support the operation. |
+| `502` | The external provider or the provider service failed. Retry later. |
+| `503` | The service is temporarily unavailable. For uploads, a response with `processId` means that processing may have started. [Check that process](/api/datasets/upload#check-an-upload-process) before you upload again. |
 
-**Fix:** upgrade your Alphacast subscription, or remove an existing resource to free up quota.
+## 504 Gateway timeout
 
----
+The request took too long. Ask for less data in one request: use `$filter`, `$select`, `$top`, or `$last` on [downloads](/api/datasets/data), or the provider's date parameters on [provider series](/api/providers/series). Before you repeat a `POST` or an upload, check whether it already succeeded.
 
-### 403 Forbidden
+## Failures that arrive with a success status
 
-Your credentials are valid, but you do not have permission to perform this action on the requested resource.
-
-**Common causes:**
-
-- You are attempting to write to (or delete from) a repository where you only have **Read** permission. Contact the repository owner to request Write access.
-- You are trying to access a private resource that belongs to another account.
-
----
-
-### 404 Not Found
-
-The resource you requested does not exist.
-
-```json
-{
-  "error": "Not found"
-}
-```
-
-**Common causes:**
-
-- The dataset or repository ID in the URL is wrong. Double-check the ID in the Alphacast UI or via a `GET /datasets` list request.
-- The resource was deleted after you last retrieved its ID.
-
----
-
-### 409 Conflict
-
-The request could not be completed because it conflicts with an existing resource.
-
-```json
-{
-  "error": "A dataset named 'CPI Monthly' already exists in repository 45."
-}
-```
-
-**Common causes:**
-
-- Creating a dataset with a name that already exists in the same repository.
-- Uploading data with a column manifest that conflicts with the dataset's existing column types.
-- Saving a provider API key while another concurrent request is updating the same key.
-
-**Fix:** rename the resource, delete the existing one, or retry once the conflicting request completes.
-
----
-
-### 429 Too Many Requests
-
-You hit a rate limit. Alphacast does not enforce a global API limit, but the provider connectors honor each upstream's limits on your behalf — if FRED, BLS, or any other source caps requests per minute or per day, Alphacast surfaces that as a `429`.
-
-```json
-{
-  "error": "Upstream provider rate limit exceeded for fred. Try again in a few seconds."
-}
-```
-
-**Common causes and fixes:**
-
-- The upstream provider's rate limit was reached. Save your own API key with `PUT /user-keys/{slug}` to raise the limit (especially for FRED and BLS, which are far more generous with an authenticated key).
-- Many concurrent series fetches against the same provider. Serialize the calls or add backoff.
-
----
-
-### 500 Internal Server Error
-
-An unexpected error occurred on the server. This is not caused by your request.
-
-**What to do:**
-
-- Wait a moment and retry the request — transient errors often resolve on their own.
-- If the error persists, note the endpoint, request body, and approximate time of the failure, then contact Alphacast support.
-
-<Note>
-  For errors that originate inside a provider connector, the response message is **sanitized** — it does not include upstream URLs, internal tokens, or stack traces. The unredacted detail is kept in Alphacast's server logs, so include the endpoint and timestamp when filing a support request.
-</Note>
-
-<Note>
-  A `500` response is never caused by invalid input in your request. If you see one consistently for the same request, it is a server-side issue worth reporting.
-</Note>
-
----
-
-### 503 Service Unavailable
-
-The API is temporarily unable to handle the request, typically because of a deploy in progress or an overloaded backend dependency.
-
-**What to do:** retry with exponential backoff. Most `503` responses clear within a few seconds.
-
----
-
-### 504 Gateway Timeout
-
-The request took longer than the gateway timeout to complete. Most often this happens on long-running operations such as fetching the full history of a large provider series, or downloading a very wide dataset.
-
-**What to do:**
-
-- Narrow the response: pass `$top`, `$last`, or `$filter` to `GET /datasets/{id}/data`, or restrict the date range when fetching provider series.
-- Retry the same request after a short delay — transient timeouts often resolve.
+- **Uploads:** `201` means that the upload was accepted. Data errors appear later, when the process status is `Error`.
+- **Downloads:** check that the file contains data. See [Plan access to data](/api/datasets/data#plan-access-to-data).
 
 ## Debugging checklist
 
-If you are not sure which error applies to your situation, work through this checklist:
-
-1. **Check the status code** — The HTTP status in the response headers is always the authoritative signal.
-2. **Read the error message** — The `error` field in the JSON body usually describes the problem specifically.
-3. **Confirm authentication** — Re-run the request with `curl -v` to inspect the `Authorization` header being sent.
-4. **Validate your JSON** — Paste your request body into a JSON validator to catch syntax errors before sending.
-5. **Verify resource IDs** — Fetch the parent resource (e.g., `GET /repositories`) to confirm the IDs you are using still exist.
-6. **Check column names in filters** — If using `$filter`, list the dataset columns first with `GET /datasets/{id}/columns` to confirm exact names.
+1. Check the status code before you read the body.
+2. Read `message` or `error`. See [error body formats](#error-body-formats).
+3. Check authentication. `curl -v` shows the headers that you send, including your key, so do not share that output.
+4. Check that your JSON is valid and that you send `Content-Type: application/json`.
+5. Check IDs. [List repositories](/api/repositories/list) or [list datasets](/api/datasets/list).
+6. Before you filter, check column names with [Get columns](/api/datasets/columns).

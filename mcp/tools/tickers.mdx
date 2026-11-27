@@ -4,7 +4,7 @@ sidebarTitle: "Tickers"
 description: "Look up market tickers, ETFs, indexes, and ISINs from an MCP client, fetch their profile metadata, and pull historical price data. Three read-only tools that pair naturally with the fetch-yahoo pipeline step."
 ---
 
-Three read-only tools for working with public market tickers. Use them to discover the right symbol from a free-text query, inspect a ticker's profile, and pull historical OHLCV data — for ad-hoc questions or to feed a pipeline.
+Three read-only tools for working with public market tickers. They are not available when your Workspace has catalog exploration turned off. Use them to discover the right symbol from a free-text query, inspect a ticker's profile, and pull historical OHLCV data — for ad-hoc questions or to feed a pipeline.
 
 <Tip>
   Symbols returned by these tools drop straight into the `fetch-yahoo` step in pipelines: `{ type: "fetch-yahoo", configuration: { tickers: ["MSFT"], period: "5y" } }`. See [`create_pipeline`](/mcp/tools/pipelines#create_pipeline) and [`add_pipeline_step`](/mcp/tools/pipelines#add_pipeline_step).

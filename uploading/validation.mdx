@@ -1,170 +1,110 @@
 ---
-title: "Validation Rules and Upload Modes"
+title: "Validation rules and upload modes"
 sidebarTitle: "Validation & modes"
-description: "Every validation rule Alphacast runs against an uploaded CSV, and how the deleteMissingFromDB / onConflictUpdateDB / acceptNewColumns flags control row-level conflict resolution."
+description: "What can make an upload fail, and how the upload flags control the merge with existing data."
 ---
 
-Once the [manifest](/uploading/manifest) is in place, every upload runs through a fixed sequence of validations, then applies the merge logic governed by three flags. This page documents both — what causes an upload to fail, and what happens to each row when it succeeds.
+An upload is checked twice. The API checks the request immediately. The data is checked later, during processing.
 
-## Validation rules
+## Request checks
 
-The processor runs these checks in order. The first failure aborts the upload and records the error message in the process's `statusDescription`.
+These errors are returned immediately with status `400`:
 
-### 1. Date column must exist and parse
-
-If the manifest declares a date column, the CSV must contain it. Every value must parse against the dataset's configured date format.
-
-| Failure | Error message |
+| Problem | Fix |
 |---|---|
-| Missing date column | `Data has not Date column` |
-| Unparseable date | `Date should be formatted as <format>` |
+| The manifest is not correctly formatted | Give every entry `sourceName`, `dataType` (`String`, `Decimal`, or `Date`), and a boolean `isEntity`. |
+| The columns are not initialized | [Initialize the columns](/uploading/overview#before-the-first-upload) or send a manifest. |
+| The `data` field is missing | Send the file in the `data` form field. |
 
-Alphacast tries the configured format, then a lowercased variant, then splits on whitespace and retries — so `2024-01-01 00:00:00` parses fine against `%Y-%m-%d`.
+<span id="validation-rules" style={{ scrollMarginTop: "8rem" }} />
 
-### 2. All entity columns must exist
+## Data checks
 
-Every column with `isEntity: true` in the manifest must appear in the CSV header.
+If the data is invalid, the process ends with status `Error`, and `statusDescription` explains why. Before you upload, check that:
 
-| Failure | Error message |
+- <span id="3-the-csv-must-not-be-empty" style={{ scrollMarginTop: "8rem" }} />The file has data rows.
+- <span id="1-date-column-must-exist-and-parse" style={{ scrollMarginTop: "8rem" }} />The date column exists, and every date matches your date format.
+- <span id="2-all-entity-columns-must-exist" style={{ scrollMarginTop: "8rem" }} /><span id="4-entity-columns-must-not-contain-null-values" style={{ scrollMarginTop: "8rem" }} />All entity columns exist. Empty values in an entity column are filled with `none`.
+- <span id="6-column-names-must-be-unique-case-insensitive" style={{ scrollMarginTop: "8rem" }} />Column names are unique, even if you ignore case, accents, spaces, and question marks.
+- <span id="7-no-duplicate-rows-by-entity-key" style={{ scrollMarginTop: "8rem" }} />No two rows have the same date and entity values.
+- <span id="5-new-columns-require-explicit-opt-in" style={{ scrollMarginTop: "8rem" }} />You set `acceptNewColumns=true` if the file adds columns with data to a dataset that already has data.
+- <span id="8-short-integer-values-must-fit-int16" style={{ scrollMarginTop: "8rem" }} /><span id="9-decimal-columns-need-≥80%-numeric-content" style={{ scrollMarginTop: "8rem" }} />Numeric columns contain numbers, without thousands separators. Otherwise, values can be read differently, become empty, or turn the column into text. See [number columns](/uploading/manifest#number-columns). Check the result after you upload.
+
+### Error messages
+
+Look for these messages in `statusDescription`. Words in angle brackets stand for your own names and values.
+
+| Message | What to do |
 |---|---|
-| Missing entity column | `Data has not required '<column>' column. If you need to change entities, please specify new entitiesColumnNames during upload` |
+| `Data has not Date column` | Add the date column, or fix its name. |
+| `Date should be formatted as <format>` | Make the dates match your [date format](/uploading/manifest#the-date-column). |
+| `Data has not required '<column>' column. If you need to change entities, please specify new entitiesColumnNames during upload` | Add the entity column. To change the entity columns on purpose, send a new [manifest](/uploading/manifest). First read the warning about removing an entity column under [upload modes](#upload-modes). |
+| `Data is empty` | Upload a file with at least one data row. |
+| `Unknown column(s): <columns>. Missing column(s): <columns> - consider renaming to original names or add 'AcceptNewColumn' parameter to confirm adding new column(s)` | Use the original column names. To add the new columns on purpose, send `acceptNewColumns=true`. |
+| `Unknown column(s): <columns>. You may use 'AcceptNewColumn' parameter to confirm adding new column(s)` | To add the columns, send `acceptNewColumns=true`. Otherwise, remove them from the file. |
+| `Duplicated columns: <columns>` | Rename the columns so that they differ in more than case, accents, spaces, or question marks. |
+| `<count> rows are duplicated. First 10 rows as example: <rows>` | Keep one row for each combination of date and entity values, or add an entity column that tells the rows apart. |
 
-### 3. The CSV must not be empty
+Where a message says `AcceptNewColumn`, use the query parameter `acceptNewColumns`.
 
-| Failure | Error message |
-|---|---|
-| Empty file | `Data is empty` |
+<span id="acceptnewcolumns" style={{ scrollMarginTop: "8rem" }} />
 
-A header-only CSV with zero data rows counts as empty.
+<span id="deletemissingfromdb" style={{ scrollMarginTop: "8rem" }} />
 
-### 4. Entity columns must not contain null values
-
-After Alphacast strips whitespace from entity values, every entity column must have a value on every row. Empty cells are first replaced by the literal string `'none'`, but if a value is genuinely missing — for example, NaN propagated from a prior calculation — the upload fails.
-
-| Failure | Error message |
-|---|---|
-| Null in entity column | `Entity column '<column>' has empty values` |
-
-### 5. New columns require explicit opt-in
-
-If the CSV contains columns the dataset has never seen before **and** the dataset already has a manifest from a prior upload **and** you did not pass `acceptNewColumns=true`, the upload fails.
-
-| Failure | Error message |
-|---|---|
-| Unknown column without opt-in | `Unknown column(s): X. Missing column(s): Y - consider renaming to original names or add 'AcceptNewColumn' parameter to confirm adding new column(s)` |
-
-To add columns intentionally, pass `acceptNewColumns=true`. To rename a column instead, use the manifest's `destinationName` field — see [Manifest](/uploading/manifest#column-fields).
-
-### 6. Column names must be unique (case-insensitive)
-
-After Alphacast normalizes column names (lowercases, removes whitespace, strips accents), no two columns may collide.
-
-| Failure | Error message |
-|---|---|
-| Duplicate columns | `Duplicated columns: <list>` |
-
-Watch out for `gdp` vs `GDP`, or `País` vs `Pais` — both pairs collide.
-
-### 7. No duplicate rows by entity key
-
-Two rows with the same combination of entity-column values (including the date column) are treated as duplicates. The upload fails and reports the count plus the first ten offending key combinations.
-
-| Failure | Error message |
-|---|---|
-| Duplicate rows | `<N> rows are duplicated. First 10 rows as example: [...]` |
-
-If your data legitimately has multiple measurements per `Date + Country`, you need an additional entity column (e.g. `Sector` or `Source`) to disambiguate them.
-
-### 8. Short Integer values must fit Int16
-
-Columns marked `Short Integer` in the manifest must hold values in the `[-32768, 32767]` range. Decimals, NaNs after coercion, or out-of-range integers all fail.
-
-| Failure | Error message |
-|---|---|
-| Out-of-range Short Integer | `Column '<column>' cannot be cast to Short Integer (Int16): <details>` |
-
-For values larger than 32,767, use `Decimal` instead.
-
-### 9. Decimal columns need ≥80% numeric content
-
-Columns declared `Decimal` go through automatic numeric inference (handles `1,200.50`, `1.200,50`, `12.5%`). If fewer than 80% of non-null values parse as numeric, Alphacast silently downgrades the column to `String`. There is no error in this case, but the column won't behave as a measurement — inspect the column types after the first upload to catch this.
+<span id="onconflictupdatedb" style={{ scrollMarginTop: "8rem" }} />
 
 ## Upload modes
 
-Once validation passes, the processor merges the new rows with the existing dataset. Three flags on the request control the merge behavior:
+Three query parameters control how the file is merged with the existing data.
 
-### `acceptNewColumns`
-
-| Value | Behavior |
-|---|---|
-| `false` (default) | Columns in the CSV that are not in the manifest cause the upload to fail (validation rule 5). |
-| `true` | Unknown columns are added to the dataset's schema. Use this when you intentionally extend a dataset. |
-
-`acceptNewColumns` is forced to `false` when the [manifest is locked](/uploading/manifest#manifest-locking).
-
-### `deleteMissingFromDB`
-
-| Value | Behavior |
-|---|---|
-| `false` (default) | Rows present in the dataset but **missing** from the upload are kept untouched. Use this for incremental uploads that only add or update recent data. |
-| `true` | Rows present in the dataset but missing from the upload are **deleted**. Use this when the upload is the new authoritative state of the dataset (a full replace). |
+| Parameter | When `false` or omitted | When `true` |
+|---|---|---|
+| `onConflictUpdateDB` | If a value already exists for the same date and entities, the existing value is kept. | The value in the file replaces it. |
+| `deleteMissingFromDB` | Existing data that is not in the file is kept. | Existing data that is not in the file is deleted. |
+| `acceptNewColumns` | The file should only contain known columns. | The file can add new columns. |
 
 <Warning>
-  `deleteMissingFromDB=true` permanently deletes any existing row whose entity key does not appear in the upload. Verify your CSV contains every row you want to keep before setting this flag.
+  `deleteMissingFromDB=true` permanently removes data. Use it only when the file contains everything you want to keep.
 </Warning>
 
-`deleteMissingFromDB` is forced to `false` when the manifest is locked.
+<Warning>
+  If you send a new manifest that removes an entity column, Alphacast does not merge the data. The file replaces the whole dataset, whatever the flags say.
+</Warning>
 
-### `onConflictUpdateDB`
+Some datasets have a locked manifest. For them, a new manifest, `deleteMissingFromDB`, and `acceptNewColumns` are ignored.
 
-A **conflict** is a row whose entity key matches an existing row but where at least one value column differs.
+If the file and the upload settings are identical to the last successful upload, nothing changes.
 
-| Value | Behavior |
+<span id="how-the-three-flags-combine" style={{ scrollMarginTop: "8rem" }} />
+
+## Common combinations
+
+| Goal | `onConflictUpdateDB` | `deleteMissingFromDB` |
+|---|---|---|
+| Add new data and keep existing values | `false` | `false` |
+| Add new data and apply revisions | `true` | `false` |
+| Make the dataset match the file | `true` | `true` |
+
+<span id="what-you-get-back-process-stats" style={{ scrollMarginTop: "8rem" }} />
+
+## Check the result
+
+Read the [upload process](/api/datasets/upload#check-an-upload-process). When it finishes, `status` is `Processed` or `Error`. Read `statusDescription` for details, then [download the data](/api/datasets/data) to confirm the result.
+
+For a `Processed` upload, `statusDescription` can include these messages. `<n>` stands for a number.
+
+| Message | Meaning |
 |---|---|
-| `false` (default) | Conflicts are resolved by **keeping the existing value** in the dataset. The upload's value is discarded for those rows. |
-| `true` | Conflicts are resolved by **overwriting the existing value** with the upload's value. Use this when the upload is meant to be the latest correct version of the data. |
+| `<n> values added to database.` | Reports what the upload added. |
+| `<n> values had conflict and were updated.` | Existing values were replaced because `onConflictUpdateDB` is `true`. |
+| `<n> values had conflict but were not updated.` | The file had different values. The existing values were kept. |
+| `<n> values where missing in data, and were deleted from database.` | Data that was not in the file was deleted because `deleteMissingFromDB` is `true`. |
+| `<n> values where missing in data, but left in database.` | Data that was not in the file was kept. |
+| `<n> historical rows outside date range were preserved without comparison.` | Rows dated before or after the dates in your file were kept as they were. |
+| `Dataset has not changed. Avoiding csv version upload.` | Nothing changed, so no new data version was saved. |
+| `Data content or processing parameters are identical to last successful upload. No changes made.` | The upload repeats the last successful one. |
+| `<n> entities were dropped in new manifest, so no merge is possible. Uploading new dataset as final dataset.` | Your new manifest removed entity columns, so the file replaced the whole dataset. |
 
-If more than 10% of values changed during a conflicting upload, the process appends a warning to `statusDescription` (`WARNING: More than 10% of values changed. This may indicate a problem with the data.`).
+<span id="what’s-next" style={{ scrollMarginTop: "8rem" }} />
 
-## How the three flags combine
-
-| Scenario | `acceptNewColumns` | `deleteMissingFromDB` | `onConflictUpdateDB` | Result |
-|---|---|---|---|---|
-| Add fresh data, never overwrite | `false` | `false` | `false` | Append-only. New rows are inserted; existing rows are never touched. |
-| Update recent values | `false` | `false` | `true` | Inserts new rows, updates existing rows with new values, leaves old rows alone. |
-| Full replacement | `false` | `true` | `true` | Dataset becomes exactly what the upload contains. |
-| Add a new column to an existing dataset | `true` | `false` | `false` | Same as scenario #1 but allows the schema to grow. |
-| Restore a backup that should not change unrelated rows | `false` | `false` | `false` | Safe default: nothing existing is overwritten or deleted. |
-
-## What you get back: process stats
-
-After every successful upload, the process record's `stats` field contains the row-level breakdown:
-
-| Field | Meaning |
-|---|---|
-| `rows` | Rows in the uploaded CSV (after manifest renames and ignores). |
-| `columns` | Columns in the uploaded CSV (after manifest renames and ignores). |
-| `minDate`, `maxDate` | Date range of the upload. |
-| `entitiesCount` | Object with the number of distinct values per entity column. |
-| `insertedValues` | Cell-level count of values added to the dataset. |
-| `updatedValues` | Cell-level count of values overwritten (only when `onConflictUpdateDB=true`). |
-| `deletedValues` | Cell-level count of values removed (only when `deleteMissingFromDB=true`). |
-| `changedValues` | Conflicts detected, regardless of resolution. |
-| `missingValues` | Cell-level count of values present in the dataset but missing from the upload. |
-| `preservedHistoricalRows` | Rows outside the upload's date range, kept without comparison (an optimization for incremental uploads). |
-| `finalRows`, `finalColumns` | Final shape of the dataset after the merge. |
-| `versionId` | S3 version ID of the new dataset snapshot. Use this for point-in-time downloads. |
-| `contentHash` | MD5 of the upload's normalized content. Identical hashes against the same flags trigger the [skip-on-identical optimization](/uploading/overview#idempotency-identical-content-is-skipped). |
-
-If the upload failed, `stats` may be empty and the error appears in `statusDescription` instead.
-
-## What's next
-
-<CardGroup cols={2}>
-  <Card title="Manifest reference" icon="table-columns" href="/uploading/manifest">
-    Define columns, types, the date format, renames, and ignored columns.
-  </Card>
-  <Card title="Upload API reference" icon="code" href="/api/datasets/upload">
-    Endpoint, parameters, code samples, and HTTP status codes.
-  </Card>
-</CardGroup>
+If `onConflictUpdateDB` is `true` and more than 10% of the values changed, `statusDescription` also has a `WARNING`. Check that the file is correct.

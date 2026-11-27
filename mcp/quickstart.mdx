@@ -4,7 +4,7 @@ sidebarTitle: "Quickstart"
 description: "Connect Claude Desktop, Claude Code, or Codex to the Alphacast MCP server in three steps and run your first prompt."
 ---
 
-The Alphacast MCP server can be reached two ways: the **hosted** server at `https://mcp.alphacast.io/mcp` (no install, sign in with OAuth) or the **local** npm package (`@alphacast/mcp`) that your client runs via `npx`. Both expose the same 32 tools. Pick one path below.
+The Alphacast MCP server can be reached two ways: the **hosted** server at `https://mcp.alphacast.io/mcp` (no install, sign in with OAuth) or the **local** npm package (`@alphacast/mcp`) that your client runs via `npx`. Both offer the same 35 tools (26 if your Workspace has catalog exploration turned off). Pick one path below.
 
 ## Option A — Hosted (recommended, no install)
 
@@ -20,7 +20,7 @@ Nothing to install and no API key to copy. Your client connects to the remote UR
 
     **Claude Desktop**: open **Settings → Connectors → Add custom connector**, name it `alphacast`, and paste the URL `https://mcp.alphacast.io/mcp`. See the [Claude Desktop guide](/mcp/configuration/claude-desktop).
 
-    For Codex, Cursor, and other clients, see their [configuration guides](/mcp/configuration/cursor) — each shows the remote URL setup.
+    For other clients, see the guides for [Codex](/mcp/configuration/codex), [Cursor](/mcp/configuration/cursor) and [other clients](/mcp/configuration/other-clients).
   </Step>
 
   <Step title="Sign in with OAuth">
@@ -42,7 +42,7 @@ Runs the server as a local subprocess. Requires Node.js 18+ and an API key.
 
 <Steps>
   <Step title="Get your API key">
-    Sign in to Alphacast and open [Settings](https://www.alphacast.io/settings) to copy your API key (or generate a new one). If you belong to multiple teams, make sure your active team subscription is selected first. The same key you use for the REST API works for the MCP server.
+    Sign in to Alphacast and open [Settings](https://www.alphacast.io/settings) to copy your API key (or generate a new one). A key belongs to one Workspace, so select the Workspace you want to use first. The same key you use for the REST API works for the MCP server.
 
     <Warning>
       Treat the key like a password. It grants the same permissions as your account. Store it in a secrets manager or an environment variable, not in source control.
@@ -56,7 +56,7 @@ Runs the server as a local subprocess. Requires Node.js 18+ and an API key.
     claude mcp add alphacast -e ALPHACAST_API_KEY=YOUR_API_KEY -- npx -y @alphacast/mcp
     ```
 
-    **Claude Desktop**: follow the [Claude Desktop guide](/mcp/configuration/claude-desktop) — it walks through editing `claude_desktop_config.json` step by step, including non-standard install paths. For Codex, Cursor, and other clients, see [Configuration](/mcp/configuration/cursor).
+    **Claude Desktop**: follow the [Claude Desktop guide](/mcp/configuration/claude-desktop) — it walks through editing `claude_desktop_config.json` step by step, including non-standard install paths. For other clients, see the guides for [Codex](/mcp/configuration/codex), [Cursor](/mcp/configuration/cursor) and [other clients](/mcp/configuration/other-clients).
   </Step>
 
   <Step title="Run your first prompt">
@@ -64,7 +64,7 @@ Runs the server as a local subprocess. Requires Node.js 18+ and an API key.
 
     > "List my Alphacast repositories."
 
-    The client should call `list_repositories` and display the result. If you see an authentication error, double-check that the `ALPHACAST_API_KEY` environment variable is set correctly in the previous step.
+    The client should call `list_repositories` and display the result. If the key is missing or invalid, the local server does not start. Check `ALPHACAST_API_KEY` and see [Local server does not start](/mcp/troubleshooting#local-server-does-not-start).
   </Step>
 </Steps>
 
@@ -72,7 +72,7 @@ Runs the server as a local subprocess. Requires Node.js 18+ and an API key.
 
 <CardGroup cols={2}>
   <Card title="Tools reference" icon="wrench" href="/mcp/tools/overview">
-    Browse all 32 tools and their input schemas.
+    Browse all 35 tools and their input schemas.
   </Card>
   <Card title="Examples" icon="lightbulb" href="/mcp/examples">
     See full prompts that combine search, download, and provider tools.

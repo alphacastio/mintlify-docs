@@ -1,149 +1,86 @@
 ---
 title: "Repositories"
-description: "Use the Alphacast Python SDK's repository client to list, look up, create, and delete repositories — the top-level containers for your datasets."
+description: "List, find, create, and delete repositories with the Python SDK."
 ---
 
-Every dataset in Alphacast lives inside a **repository**. Repositories control privacy (Public vs Private) and grant permissions to users. The SDK exposes repository operations through the `repository` attribute on the `Alphacast` client.
-
-```python
-from alphacast import Alphacast
-
-alphacast = Alphacast("YOUR_API_KEY")
-alphacast.repository  # the repository client
-```
-
-<Info>
-  For the conceptual overview of what a repository is and how permissions work, see [Repositories](/concepts/repositories) in the Documentation tab.
-</Info>
+Every dataset lives in a repository. Use `alphacast.repository` to work with them. See [Repositories](/concepts/repositories) for privacy and permissions.
 
 ## List your repositories
 
-`read_all()` returns every repository where you have at least read permission, including public repositories you have explicitly subscribed to.
-
 ```python
-repos = alphacast.repository.read_all()
-
-for repo in repos:
-    print(repo["id"], repo["name"], repo["privacy"])
+for repo in alphacast.repository.read_all():
+    print(repo["id"], repo["name"], repo["privacy"], repo["permission"])
 ```
 
-The response is a list of dicts. Each dict includes at least `id`, `name`, `description`, `privacy`, `slug`, and `permission`.
+Returns the repositories that your account or your teams have permission on. Each one has `id`, `name`, `accountId`, `description`, `privacy`, `slug`, and `permission`.
 
-## Look up a repository by ID
+<span id="look-up-a-repository-by-id" style={{ scrollMarginTop: "8rem" }} />
+
+## Get a repository by ID
 
 ```python
 repo = alphacast.repository.read_by_id(42)
 print(repo["name"])
 ```
 
-Use this when you already have the repository ID — for example from a previous `create()` call or from the URL `https://www.alphacast.io/repositories/{id}` in the Alphacast UI.
+<span id="look-up-a-repository-by-name" style={{ scrollMarginTop: "8rem" }} />
 
-## Look up a repository by name
+## Find a repository by name
 
 ```python
 repo = alphacast.repository.read_by_name("My First Repo")
 
 if repo:
     print("Found:", repo["id"])
-else:
-    print("Not found")
 ```
 
-`read_by_name` scans the list returned by `read_all()` and returns the first repository whose `name` matches exactly. If no repository matches, it returns `False`.
-
-<Note>
-  Name lookup is case-sensitive and matches the exact string. If you have repositories with similar names, prefer looking them up by ID.
-</Note>
+The server matches the name, ignoring case and accents. The method returns the first match, which can be a team repository. It returns `False` when nothing matches. If you need an exact target, use the ID.
 
 ## Create a repository
 
 ```python
 repo = alphacast.repository.create(
     "Macro Indicators",
-    repo_description="A repository for macroeconomic indicators",
+    repo_description="Macroeconomic indicators",
     privacy="Private",
-    slug="macro-indicators",
     returnIdIfExists=True,
 )
 print(repo["id"])
 ```
 
-### Parameters
+<span id="parameters" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="repo_name" type="str" required>
-  Display name for the repository. Must be unique within your account.
-</ParamField>
+<ParamField path="repo_name" type="str" required>Repository name.</ParamField>
+<ParamField path="repo_description" type="str">Description. Defaults to the name.</ParamField>
+<ParamField path="privacy" type="str" default="Private">`Private` or `Public`.</ParamField>
+<ParamField path="slug" type="str">Accepted by the method, but Alphacast generates the slug itself.</ParamField>
+<ParamField path="returnIdIfExists" type="bool" default="False">If a repository with this name is found, return it. When `False`, the method raises `ValueError`.</ParamField>
 
-<ParamField path="repo_description" type="str">
-  Long-form description shown on the repository page. Defaults to `repo_name` if omitted.
-</ParamField>
+<span id="idempotent-create" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="privacy" type="str" default="Private">
-  `"Private"` or `"Public"`. Public repositories are discoverable by all Alphacast users.
-</ParamField>
+<span id="find-or-create" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="slug" type="str">
-  URL-safe identifier used in the repository's web URL. Defaults to a slugified version of `repo_name` if omitted.
-</ParamField>
-
-<ParamField path="returnIdIfExists" type="bool" default="False">
-  Controls behavior when a repository with the same `repo_name` already exists. When `True`, the existing repository is returned. When `False`, a `ValueError` is raised.
-</ParamField>
-
-### Idempotent create
-
-Pass `returnIdIfExists=True` to make repository creation safe to re-run — for example in a script that bootstraps an environment:
-
-```python
-repo = alphacast.repository.create(
-    "Sandbox",
-    privacy="Private",
-    returnIdIfExists=True,
-)
-repo_id = repo["id"]
-```
-
-The first run creates the repository; subsequent runs return the existing one without raising.
+With `returnIdIfExists=True`, the method returns the whole repository record, not only the ID. The method raises an exception if the request fails.
 
 ## Delete a repository
 
-```python
-alphacast.repository.delete(42)
-```
-
 <Warning>
-  Deleting a repository permanently removes the repository **and every dataset inside it**, including all uploaded data. This action cannot be undone.
+  This permanently deletes the repository and its content, including datasets, pipelines, charts, and files.
 </Warning>
 
-Pass the repository's numeric ID. The call returns the raw response body from the API as bytes — the SDK does not parse it.
-
-## Common patterns
-
-### Find or create
-
-When you want a single canonical repository for a workflow:
+`delete` does not raise on HTTP errors. A successful deletion returns an empty response, so check it:
 
 ```python
-repo = (
-    alphacast.repository.read_by_name("Macro Indicators")
-    or alphacast.repository.create("Macro Indicators", privacy="Private")
-)
-repo_id = repo["id"]
+raw = alphacast.repository.delete(42)
+if raw:
+    raise RuntimeError(f"Delete failed: {raw.decode()}")
 ```
 
-Or, equivalently, with `returnIdIfExists`:
+<span id="common-patterns" style={{ scrollMarginTop: "8rem" }} />
 
-```python
-repo = alphacast.repository.create(
-    "Macro Indicators",
-    privacy="Private",
-    returnIdIfExists=True,
-)
-```
+<span id="list-only-repositories-you-can-write-to" style={{ scrollMarginTop: "8rem" }} />
 
-### List only repositories you can write to
-
-`read_all()` returns repositories where you have *any* permission. Filter on the `permission` field to keep only writeable ones:
+## List repositories that you can write to
 
 ```python
 writable = [
@@ -152,7 +89,15 @@ writable = [
 ]
 ```
 
+To change a repository's name or privacy, use the [web app](/concepts/repositories#repository-settings).
+
 ## Next steps
 
-- Add datasets to a repository — see [Datasets](/python-sdk/datasets).
-- Push data into a dataset — see [Uploading data](/python-sdk/uploading).
+<CardGroup cols={2}>
+  <Card title="Datasets" icon="table" href="/python-sdk/datasets">
+    Work with datasets.
+  </Card>
+  <Card title="Uploading data" icon="upload" href="/python-sdk/uploading">
+    Add data to a dataset.
+  </Card>
+</CardGroup>

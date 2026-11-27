@@ -19,7 +19,7 @@ You don't need a rigid formula. The clearer the frame, the more direct and usefu
     State whether you need **daily, monthly, quarterly, or annual** data. Mixing frequencies is a common cause of surprising results.
   </Card>
   <Card title="4 · Period & scope" icon="calendar">
-    Give the **dates** and say **where to look**: your repositories, the general catalog, or one specific provider.
+    Give the **dates** and say **where to look**: your repositories, a methodology from your [Workspace](/mcp/tools/workspace), the general catalog, or one specific provider.
   </Card>
 </CardGroup>
 
@@ -64,8 +64,8 @@ In the Alphacast catalog, find the monthly EMAE dataset from INDEC.
 On pipeline 4319, I want to add a step that multiplies the variables by 100.
 1. Show me the current steps and their order.
 2. Propose where the new step goes and explain its impact.
-3. Preview the output.
-4. Don't save, run, or publish until I confirm.
+3. Tell me whether the pipeline has publish steps that a run would execute.
+4. Don't save, preview, run, or publish until I confirm.
 ```
 </CodeGroup>
 
@@ -89,14 +89,14 @@ Every result can carry what you need to verify, cite, and reuse it. Ask for it e
 ## Preview before you commit
 
 <Warning>
-  For any action that changes Alphacast — creating or editing a pipeline, saving, running, or publishing — ask the model to **show what it will change, preview the result, and wait for your confirmation** before it writes anything.
+  For any action that changes Alphacast, such as creating or editing a pipeline, ask the model to **explain what it will change and wait for your confirmation** before it calls a write tool. Saving a pipeline change also runs the pipeline.
 </Warning>
 
 A phrase that works well in write-capable clients:
 
-> "Show me the proposed change and a preview first. Don't save, run, or publish until I say so."
+> "Describe the proposed change first. Don't save, preview, run, or publish until I say so."
 
-The MCP surface is read-only except for the four pipeline write tools, and destructive actions (deleting repositories, datasets, or pipelines) are never exposed to an agent — but the preview-first habit still keeps edits predictable. See [Safety boundaries](/mcp/tools/overview#safety-boundaries) for the full list.
+Six tools need write access. They include `get_step_preview` and `get_step_data`, which can start pipeline runs, and a run can include publish steps. So a preview in Alphacast is not always free of effects: ask the model to describe the change before it calls any of these tools. There are no tools to delete repositories, datasets or whole pipelines. See [Safety boundaries](/mcp/tools/overview#safety-boundaries).
 
 ## Who does what
 
@@ -104,9 +104,9 @@ Understanding the division of labor helps you phrase requests — and know when 
 
 | Actor | Role |
 |---|---|
-| 🧠 **The AI assistant** | Understands the request, organizes the task, and analyzes the results. |
-| 🔌 **The Alphacast MCP** | Gives the assistant the tools to search, read, and operate on Alphacast and its enabled providers. |
-| α **The Alphacast platform** | Manages permissions, stores datasets and charts, and runs or publishes pipelines. |
+| **The AI assistant** | Understands the request, organizes the task, and analyzes the results. |
+| **The Alphacast MCP** | Gives the assistant the tools to search, read, and operate on Alphacast and its enabled providers. |
+| **The Alphacast platform** | Manages permissions, stores datasets and charts, and runs or publishes pipelines. |
 
 Every task falls into one of three buckets:
 

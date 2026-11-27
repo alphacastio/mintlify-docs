@@ -4,7 +4,7 @@ sidebarTitle: "Fetch API provider"
 description: "Import series from any connected external data provider — central banks, statistics offices and international organizations."
 ---
 
-The **Fetch API Explorer Data** step imports series directly from an external data provider, without going through an Alphacast dataset first. It covers the same 30+ connectors documented in [Data providers](/concepts/data-providers) — central banks, national statistics offices, market data sources and international organizations.
+The **Fetch API Explorer Data** step imports series directly from an external data provider, without going through an Alphacast dataset first. It covers the same 30+ connectors documented in [Data providers](/providers/overview) — central banks, national statistics offices, market data sources and international organizations.
 
 ## Configuration
 
@@ -21,7 +21,7 @@ In **long** format the output carries `Date`, `Provider`, `Series`, any entity d
 In **wide** format each series becomes its own column, joined on date.
 
 <Note>
-Some providers require an API key. Keys are stored per user, not per pipeline — see [Data providers](/concepts/data-providers) for how to save one, and [Provider tools](/mcp/tools/providers) for managing them through an agent.
+Some providers require an API key. Keys are stored per user, not per pipeline — see [Data providers](/providers/overview) for how to save one, and [Provider tools](/mcp/tools/providers) for managing them through an agent.
 </Note>
 
 <Warning>
@@ -35,7 +35,7 @@ To find the right provider and series identifier before building the step, brows
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Data providers" icon="globe" href="/concepts/data-providers">
+  <Card title="Data providers" icon="globe" href="/providers/overview">
     The full catalog of connected providers.
   </Card>
   <Card title="Publish to Dataset" icon="upload" href="/steps/publish">

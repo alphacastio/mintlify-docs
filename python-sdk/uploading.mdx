@@ -1,17 +1,21 @@
 ---
-title: "Uploading Data"
-description: "Create datasets, declare their column schema, and upload pandas DataFrames or CSV strings to Alphacast using the Python SDK."
+title: "Uploading data"
+description: "Create a dataset, set up its columns, and upload a DataFrame or CSV with the Python SDK."
 ---
 
-The SDK turns the three-step Alphacast upload workflow — create dataset, initialize columns, upload data — into three short Python calls. This page walks through each step and the conflict-resolution flags that control how new data is merged with existing rows.
+Uploading has three steps: create the dataset, describe its columns, and upload. For the rules, see [Uploading data](/uploading/overview).
 
-<Info>
-  The mechanics of validation, manifests, and the merge logic are documented in the [Uploading Data](/uploading/overview) section. This page focuses on the SDK surface; refer back to the concept pages when you need to understand *why* an upload behaved a certain way.
-</Info>
+<span id="parameters" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-dataset-name" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-repo-id" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-description" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-return-id-if-exists" style={{ scrollMarginTop: "8rem" }} />
 
 ## 1. Create the dataset
-
-`datasets.create()` registers a new empty dataset inside a repository:
 
 ```python
 ds = alphacast.datasets.create(
@@ -20,211 +24,136 @@ ds = alphacast.datasets.create(
     description="GDP series by country",
     returnIdIfExists=True,
 )
-dataset_id = ds["id"]
+handle = alphacast.datasets.dataset(ds["id"])
 ```
 
-### Parameters
+If a dataset with that name exists in the repository, `returnIdIfExists=True` returns its record. Otherwise the method raises `ValueError`. It raises `Exception` if the request fails, for example when your [plan](https://www.alphacast.io/pricing) does not let you create datasets.
 
-<ParamField path="dataset_name" type="str" required>
-  Display name. Must be unique within the parent repository.
-</ParamField>
+<span id="2-initialize-the-columns" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="repo_id" type="int" required>
-  Numeric ID of the parent repository.
-</ParamField>
+<span id="initialize_columns" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="description" type="str" default='""'>
-  Long-form description shown on the dataset page.
-</ParamField>
+<span id="param-date-column-name" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="returnIdIfExists" type="bool" default="False">
-  When `True`, an existing dataset with the same name in the same repo is returned instead of raising. Use this for idempotent setup scripts.
-</ParamField>
+<span id="param-entities-column-names" style={{ scrollMarginTop: "8rem" }} />
 
-If the dataset already exists and `returnIdIfExists=False`, the call raises `ValueError`. The error message includes the existing dataset's ID.
+<span id="param-date-format" style={{ scrollMarginTop: "8rem" }} />
 
-## 2. Initialize the columns
+## 2. Describe the columns
 
-Before the first upload, declare which column carries the date and which columns identify a row. You can do this in either of two ways:
-
-1. **Call `initialize_columns()` before uploading** — sets the manifest as a separate API call (covered in this section).
-2. **Pass the manifest fields directly to the upload call** — `upload_data_from_df` and `upload_data_from_csv` accept the same parameters and build the manifest in-flight (covered in [Inline schema declaration](#inline-schema-declaration) below). This is what the SDK's own tests use.
-
-Both approaches set the same underlying manifest. Pick whichever fits your code.
-
-### `initialize_columns()`
-
-Use `initialize_columns()` on the dataset handle:
+Before the first upload, use `initialize_columns` or [declare the columns in the upload](#declare-columns-in-the-upload).
 
 ```python
-alphacast.datasets.dataset(dataset_id).initialize_columns(
+import json
+
+raw = handle.initialize_columns(
     dateColumnName="Date",
     entitiesColumnNames=["country"],
     dateFormat="%Y-%m-%d",
 )
+if "columnDefinitions" not in json.loads(raw):
+    raise RuntimeError(raw.decode())
 ```
 
-<ParamField path="dateColumnName" type="str" required>
-  Name of the date column in your CSV / DataFrame. Must match exactly (case-sensitive).
-</ParamField>
+All three arguments are required. The method does not raise for every HTTP error, so check the result. It works only before the dataset has data.
 
-<ParamField path="entitiesColumnNames" type="list[str]" required>
-  Names of the entity columns. Together with the date column they form the dataset's unique key — every `(date, entity values...)` combination must be unique.
-</ParamField>
+<span id="3-upload-the-data" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="dateFormat" type="str" required>
-  `strftime` format string describing how dates are written in the CSV — for example `"%Y-%m-%d"` for ISO dates or `"%d/%m/%Y"` for European-style.
-</ParamField>
+<span id="from-a-pandas-dataframe" style={{ scrollMarginTop: "8rem" }} />
 
-<Note>
-  Alphacast's chart engine currently expects a single entity column. Multiple entities are supported for storage and download, but charting works only on single-entity datasets.
-</Note>
+<span id="param-df" style={{ scrollMarginTop: "8rem" }} />
 
-## 3. Upload the data
+<span id="end-to-end-example" style={{ scrollMarginTop: "8rem" }} />
 
-The SDK provides two upload methods. Both upload to the same endpoint and accept the same merge flags — the only difference is the input type.
-
-### From a `pandas.DataFrame`
+## 3. Upload
 
 ```python
-process = alphacast.datasets.dataset(dataset_id).upload_data_from_df(
+raw = handle.upload_data_from_df(
     df,
-    deleteMissingFromDB=False,
     onConflictUpdateDB=True,
     uploadIndex=False,
 )
 ```
 
-The SDK serializes the DataFrame to CSV in memory, gzip-compresses it, and `PUT`s it to `/datasets/{id}/data`. The call returns the API's raw response — the JSON of an upload **process** record.
+<span id="from-a-csv-string" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="df" type="pandas.DataFrame" required>
-  The data to upload. Must contain the date column and every entity column declared in `initialize_columns`. Raises if the DataFrame is empty.
-</ParamField>
-
-<ParamField path="uploadIndex" type="bool" default="True">
-  Whether to include the DataFrame's index column in the upload. Set to `False` if your DataFrame has a meaningless `RangeIndex`.
-</ParamField>
-
-### From a CSV string
+Or upload a CSV string:
 
 ```python
-csv_text = open("gdp.csv").read()
-
-process = alphacast.datasets.dataset(dataset_id).upload_data_from_csv(
-    csv_text,
-    deleteMissingFromDB=False,
-    onConflictUpdateDB=True,
-)
+with open("gdp.csv", encoding="utf-8") as f:
+    raw = handle.upload_data_from_csv(f.read(), onConflictUpdateDB=True)
 ```
 
-`upload_data_from_csv` accepts the CSV as a Python string. The SDK gzip-compresses it before uploading.
+The SDK compresses the CSV with gzip. `upload_data_from_df` raises an error for an empty `DataFrame`.
+
+<ParamField path="uploadIndex" type="bool" default="True">Only for DataFrames. Set `False` unless the index holds data, such as dates.</ParamField>
+
+<span id="return-value" style={{ scrollMarginTop: "8rem" }} />
+
+## Check the response
+
+<Warning>
+  The upload methods do not raise on HTTP errors. Check every response.
+</Warning>
+
+```python
+def check_upload(raw):
+    try:
+        body = json.loads(raw)
+    except ValueError:
+        raise RuntimeError(raw.decode(errors="replace"))
+    if "id" not in body or "status" not in body:
+        raise RuntimeError(body)
+    return body
+
+process = check_upload(raw)
+print(process["id"], process["status"])  # status starts at Requested
+```
+
+If the error body has a `processId`, processing may have started. [Check that process](/python-sdk/processes) before you upload again.
+
+A valid response only means that the upload was accepted. [Wait for the process](/python-sdk/processes#wait-for-an-upload) to finish.
+
+<span id="common-combinations" style={{ scrollMarginTop: "8rem" }} />
 
 ## Merge flags
 
-Both upload methods accept the same conflict-resolution flags:
+<ParamField path="deleteMissingFromDB" type="bool" default="False">Delete existing data that is not in the upload.</ParamField>
+<ParamField path="onConflictUpdateDB" type="bool" default="False">Overwrite existing values with uploaded values.</ParamField>
+<ParamField path="acceptNewColumns" type="bool" default="None">Set `True` to allow new columns.</ParamField>
 
-<ParamField path="deleteMissingFromDB" type="bool" default="False">
-  When `True`, rows already in the dataset that are absent from the upload are **deleted**. Use for full replacements.
-</ParamField>
+See [Upload modes](/uploading/validation#upload-modes).
 
-<ParamField path="onConflictUpdateDB" type="bool" default="False">
-  When `True`, rows whose key matches an existing row are **updated** with the incoming value. When `False`, the existing value is kept.
-</ParamField>
+<span id="inline-schema-declaration" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="acceptNewColumns" type="bool" default="None">
-  When `True`, columns in the CSV that aren't in the existing schema are **added** to the dataset. When `False` (or omitted), unknown columns cause the upload to fail.
-</ParamField>
+## Declare columns in the upload
 
-The same flags map directly to the [REST API query parameters](/api/datasets/upload). The full validation logic and edge cases are described in [Validation & upload modes](/uploading/validation).
-
-### Common combinations
-
-| Goal | `deleteMissingFromDB` | `onConflictUpdateDB` |
-|---|---|---|
-| Append new rows, never overwrite existing | `False` | `False` |
-| Append new rows, overwrite duplicates | `False` | `True` |
-| Full replacement (mirror the upload exactly) | `True` | `True` |
-| Trim the dataset to match the upload, but keep existing values where they overlap | `True` | `False` |
-
-## Inline schema declaration
-
-Both upload methods can declare the column schema inline — useful when you want to push data and set the manifest in a single call. Pass the same field names as `initialize_columns`, plus optional `stringColumnNames` and `acceptNewColumns`:
+You can send a [manifest](/uploading/manifest) with the upload:
 
 ```python
-alphacast.datasets.dataset(dataset_id).upload_data_from_df(
+raw = handle.upload_data_from_df(
     df,
-    deleteMissingFromDB=False,
-    onConflictUpdateDB=True,
     uploadIndex=False,
     dateColumnName="Date",
     dateFormat="%Y-%m-%d",
     entitiesColumnNames=["country"],
     stringColumnNames=["notes"],
-    acceptNewColumns=True,
 )
+process = check_upload(raw)
 ```
 
-When provided, these arguments are sent as the upload's `manifest` form field — see the [manifest reference](/uploading/manifest). With this pattern you can skip the separate `initialize_columns()` call entirely.
-
-<Tip>
-  Use `acceptNewColumns=True` together with the inline manifest to **add new columns** to an existing dataset on the next upload. Without it, columns not already in the schema cause the upload to fail.
-</Tip>
-
-## Return value
-
-Both `upload_data_from_df` and `upload_data_from_csv` return the API response body as **bytes** — a JSON-encoded process record. Decode with `json.loads(...)` to use it:
-
-```python
-import json
-
-raw = alphacast.datasets.dataset(dataset_id).upload_data_from_df(df)
-process = json.loads(raw)
-
-print(process["id"], process["status"])
-# {"id": 45141, "status": "Requested", "createdAt": "2026-04-28T16:58:18.999786", "datasetId": 7938}
-```
-
-The process moves through `Requested → Processing → Processed` (or `Error`). To poll for completion, see [Process status](/python-sdk/processes).
-
-## End-to-end example
-
-```python
-import os
-import pandas as pd
-from alphacast import Alphacast
-
-alphacast = Alphacast(os.environ["ALPHACAST_API_KEY"])
-
-# 1. Repository
-repo = alphacast.repository.create(
-    "Macro Indicators", privacy="Private", returnIdIfExists=True
-)
-
-# 2. Dataset
-ds = alphacast.datasets.create(
-    "Quarterly GDP", repo["id"], returnIdIfExists=True
-)
-dataset_id = ds["id"]
-
-# 3. Columns
-alphacast.datasets.dataset(dataset_id).initialize_columns(
-    dateColumnName="Date",
-    entitiesColumnNames=["country"],
-    dateFormat="%Y-%m-%d",
-)
-
-# 4. Data
-df = pd.read_csv("gdp.csv")
-alphacast.datasets.dataset(dataset_id).upload_data_from_df(
-    df,
-    deleteMissingFromDB=False,
-    onConflictUpdateDB=True,
-    uploadIndex=False,
-)
-```
+- `dateColumnName` and `dateFormat` go together. If you omit one, the date column is left out of the manifest.
+- `entitiesColumnNames` are text columns that identify each row.
+- `stringColumnNames` are value columns with text.
+- The SDK does not add numeric value columns to the manifest.
 
 ## Next steps
 
-- Verify the upload succeeded — see [Process status](/python-sdk/processes).
-- Pull the data back as a DataFrame — see [Downloading data](/python-sdk/downloading).
-- Read the [validation rules](/uploading/validation) to understand why an upload might end up in `Error` state.
+<CardGroup cols={2}>
+  <Card title="Process status" icon="clock" href="/python-sdk/processes">
+    Confirm that the upload finished.
+  </Card>
+  <Card title="Downloading data" icon="download" href="/python-sdk/downloading">
+    Read the data back.
+  </Card>
+</CardGroup>

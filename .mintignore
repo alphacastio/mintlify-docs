@@ -6,10 +6,5 @@
 drafts/
 *.draft.mdx
 
-# Pipelines are not exposed in the public docs. Files kept on disk for easy re-enable.
+# The pipelines API is not part of the public docs.
 api/pipelines/
-pipelines/
-concepts/pipelines.mdx
-
-# Drafts and Excel/Google Drive integrations are not exposed in the public docs.
-integrations/

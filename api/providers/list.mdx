@@ -1,545 +1,254 @@
 ---
-title: "GET /providers — List and Browse Data Providers"
+title: "GET /providers — List and browse data providers"
 sidebarTitle: "List providers"
-description: "List all available data providers, browse their hierarchical categories, search for series, and save provider API keys for authenticated access."
+description: "List data providers, inspect them, browse and search their catalogs, and save provider keys."
 ---
 
-The Alphacast provider API gives you a unified interface to discover and navigate data from dozens of official statistical agencies, central banks, and financial data sources. You can list all providers, inspect their capabilities, browse hierarchical category trees, search for specific series within a provider, and manage the provider API keys that some sources require.
+Use these endpoints to find a provider and a series ID. See the [provider list](/providers/overview) and the [live catalog](https://www.alphacast.io/explore/apis).
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-All provider endpoints use HTTP Basic Auth. Pass your Alphacast API key as the username with an empty password.
+Send your Alphacast API key with [Basic Auth](/authentication). Requests can then use your saved provider keys.
+
+<span id="endpoints" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="get-/providers" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="request-example" style={{ scrollMarginTop: "8rem" }} />
+
+## List providers
+
+```
+GET /providers
+```
 
 ```bash
 curl -u YOUR_API_KEY: https://api.alphacast.io/providers
 ```
 
-<Note>
-Most listing and browse endpoints work without authentication, but authenticated requests are required to manage provider API keys via `/user-keys`.
-</Note>
+Returns an array. Each entry has:
 
----
+<span id="param-has-api-key" style={{ scrollMarginTop: "8rem" }} />
 
-## Endpoints
+<span id="param-api-key-hint" style={{ scrollMarginTop: "8rem" }} />
 
-### GET /providers
+<ResponseField name="slug" type="string">Identifier used in other endpoints.</ResponseField>
+<ResponseField name="name" type="string">Name of the data collection.</ResponseField>
+<ResponseField name="provider" type="string">Publishing organization.</ResponseField>
+<ResponseField name="description" type="string">What the provider covers.</ResponseField>
+<ResponseField name="capabilities" type="string[]">`hierarchical`, `search`, `direct`.</ResponseField>
+<ResponseField name="license" type="string">License or usage terms.</ResponseField>
+<ResponseField name="api_key_required" type="boolean">Whether you need a provider key.</ResponseField>
+<ResponseField name="api_key_label" type="string">Name of the key. Can be `null`.</ResponseField>
+<ResponseField name="api_key_url" type="string">Where to get the key. Can be `null`.</ResponseField>
+<ResponseField name="anonymous_limit_message" type="string">Limits without a key. Can be `null`.</ResponseField>
+<ResponseField name="has_user_api_key" type="boolean">Whether you saved a key.</ResponseField>
 
-Returns the full catalog of available data providers. Use this to discover slugs, understand each provider's capabilities, and check licensing terms before fetching data.
+<span id="get-/providers/match" style={{ scrollMarginTop: "8rem" }} />
 
-<RequestExample>
+## Match providers by keyword
 
-```bash cURL
-curl -u YOUR_API_KEY: https://api.alphacast.io/providers
+```
+GET /providers/match?q={keywords}
 ```
 
-```python Python
-import requests
-
-response = requests.get(
-    "https://api.alphacast.io/providers",
-    auth=("YOUR_API_KEY", ""),
-)
-providers = response.json()
-```
-
-```javascript Node.js
-const response = await fetch("https://api.alphacast.io/providers", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
-const providers = await response.json();
-```
-
-</RequestExample>
-
-**Response fields**
-
-<ResponseField name="slug" type="string" required>
-  Unique identifier for the provider. Use this as the `{slug}` path parameter in all other provider endpoints. Examples: `fred`, `bls`, `worldbank`, `bcra`.
-</ResponseField>
-
-<ResponseField name="name" type="string" required>
-  Human-readable name of the data collection. Examples: `FRED Economic Data`, `BLS Public Data`.
-</ResponseField>
-
-<ResponseField name="provider" type="string" required>
-  Name of the organization that publishes the data. Examples: `Federal Reserve Bank of St. Louis`, `U.S. Bureau of Labor Statistics`.
-</ResponseField>
-
-<ResponseField name="description" type="string" required>
-  Short description of what the provider covers — topics, geography, and data types.
-</ResponseField>
-
-<ResponseField name="capabilities" type="string[]" required>
-  List of supported operations for this provider. Possible values:
-
-  - `"hierarchical"` — supports category browsing via `GET /providers/{slug}/browse`
-  - `"search"` — supports free-text series search via `GET /providers/{slug}/search`
-  - `"direct"` — supports fetching a series directly by ID
-</ResponseField>
-
-<ResponseField name="license" type="string">
-  Data license or usage terms. Examples: `Public Domain`, `Creative Commons Attribution 4.0 (CC-BY 4.0)`.
-</ResponseField>
-
-**Example response**
-
-```json
-[
-  {
-    "slug": "fred",
-    "name": "FRED Economic Data",
-    "provider": "Federal Reserve Bank of St. Louis",
-    "description": "Hundreds of thousands of economic time series from dozens of national, international, public, and private sources.",
-    "capabilities": ["search", "hierarchical", "direct"],
-    "license": "Public Domain (mostly)"
-  },
-  {
-    "slug": "worldbank",
-    "name": "World Bank Open Data",
-    "provider": "The World Bank",
-    "description": "Global development indicators covering economics, health, education, environment, and more for 200+ countries.",
-    "capabilities": ["hierarchical", "direct"],
-    "license": "Creative Commons Attribution 4.0 (CC-BY 4.0)"
-  },
-  {
-    "slug": "bls",
-    "name": "BLS Public Data",
-    "provider": "U.S. Bureau of Labor Statistics",
-    "description": "Employment, wages, inflation, and productivity statistics from the U.S. federal statistical agency.",
-    "capabilities": ["hierarchical", "search", "direct"],
-    "license": "Public Domain"
-  }
-]
-```
-
----
-
-### GET /providers/match
-
-Performs a keyword search across all providers and returns the top 5 matches with full detail. This endpoint is designed for programmatic discovery — for example, when you want to find which provider carries a certain type of data without knowing its slug in advance.
-
-**Query parameters**
-
-<ParamField query="q" type="string" required>
-  Free-text search query. Matched against each provider's slug, name, organization name, and description. Multiple words are scored independently — a provider matching more terms ranks higher.
-</ParamField>
+Returns up to five providers whose slug, name, organization, or description match your words. `q` can have up to 256 characters. Results also include `parameters` and `popular_series`. For providers that require a key, they include `api_key_required`, `api_key_label`, `api_key_hint`, and `has_api_key`.
 
 ```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/providers/match?q=argentina+inflation"
+curl -u YOUR_API_KEY: "https://api.alphacast.io/providers/match?q=argentina+inflation"
 ```
 
-**Response fields**
+<span id="param-parameters" style={{ scrollMarginTop: "8rem" }} />
 
-Each item in the returned array includes all fields from `/providers` plus the following additional fields when the provider requires an API key:
+<span id="param-popular-series" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="parameters" type="object[]">
-  List of configurable parameters for the provider (same structure as in provider detail).
-</ResponseField>
+<span id="get-/providers/" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="popular_series" type="object[]">
-  Curated list of commonly used series IDs and labels for this provider.
-</ResponseField>
+<span id="param-slug-1" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="api_key_required" type="boolean">
-  Present and `true` when the provider requires you to supply your own API key from the upstream source.
-</ResponseField>
+<span id="param-slug-2" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="has_api_key" type="boolean">
-  Present when `api_key_required` is `true`. Indicates whether you have already saved an API key for this provider via `/user-keys/{slug}`.
-</ResponseField>
+<span id="param-name-1" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="api_key_label" type="string">
-  Human-readable label for the key field, such as `"FRED API Key"` or `"INEGI API Token"`.
-</ResponseField>
+<span id="param-provider-1" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="api_key_hint" type="string">
-  Message explaining any access limitations when no key is provided. Example: `"A FRED API key is required. Get one for free."`.
-</ResponseField>
+<span id="param-description-1" style={{ scrollMarginTop: "8rem" }} />
 
----
+<span id="param-capabilities-1" style={{ scrollMarginTop: "8rem" }} />
 
-### GET /providers/{slug}
+<span id="param-parameters-1" style={{ scrollMarginTop: "8rem" }} />
 
-Returns full detail for a single provider including its configurable parameters, a curated list of popular series, and whether you have a stored API key for it.
+<span id="param-key" style={{ scrollMarginTop: "8rem" }} />
 
-**Path parameters**
+<span id="param-label" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="slug" type="string" required>
-  Provider slug. Use the `slug` field from `GET /providers`. Matching is **case-insensitive** — `fred`, `FRED`, and `Fred` all resolve to the same provider.
-</ParamField>
+<span id="param-type" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-location" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-default" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-values" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-popular-series-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-license-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-api-key-label-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-browse-root-label" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-series-id-placeholder" style={{ scrollMarginTop: "8rem" }} />
+
+## Get a provider
+
+```
+GET /providers/{slug}
+```
+
+Slugs are not case-sensitive. In addition to the list fields, the response includes:
+
+- `parameters`: options you can send when you fetch a series.
+- `popular_series`: suggested series, each with `id` and `label`.
+- `browse_root_label` and `series_id_placeholder`: hints for browsing and for series ID formats.
+- `entity_columns`: extra key columns in the data, if any.
 
 ```bash
 curl -u YOUR_API_KEY: https://api.alphacast.io/providers/fred
 ```
 
-**Response fields**
+<span id="get-/providers//browse" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="slug" type="string" required>
-  Provider slug.
-</ResponseField>
+<span id="param-slug-3" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="name" type="string" required>
-  Display name.
-</ResponseField>
+<span id="param-series" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="provider" type="string" required>
-  Publishing organization name.
-</ResponseField>
+## Browse a provider
 
-<ResponseField name="description" type="string" required>
-  Description of the data covered.
-</ResponseField>
+```
+GET /providers/{slug}/browse
+```
 
-<ResponseField name="capabilities" type="string[]" required>
-  Supported operations: `"hierarchical"`, `"search"`, `"direct"`.
-</ResponseField>
+Works with providers that have the `hierarchical` capability. Others return `400`.
 
-<ResponseField name="parameters" type="object[]">
-  Provider-specific parameters you can pass when fetching series data. Each parameter object includes:
+<ParamField query="path" type="string">Position in the tree. Omit it for the root. Path formats differ by provider. Build the path from the values that earlier responses give you.</ParamField>
+<ParamField query="depth" type="integer" default="1">Levels to fetch, up to `3`. With a depth above 1, the response has `nodes`, `truncated`, and `depth_reached`.</ParamField>
+<ParamField query="limit" type="integer">Page size for series lists, up to 1000. Some folder lists ignore it.</ParamField>
+<ParamField query="offset" type="integer">Number of series to skip.</ParamField>
 
-  <Expandable title="parameter properties">
-    <ResponseField name="key" type="string">
-      Parameter key to use in the request body or query string.
-    </ResponseField>
-    <ResponseField name="label" type="string">
-      Human-readable label.
-    </ResponseField>
-    <ResponseField name="type" type="string">
-      Input type: `"number"`, `"text"`, `"select"`.
-    </ResponseField>
-    <ResponseField name="location" type="string">
-      Where the parameter is sent: `"body"`, `"query"`, or `"header"`.
-    </ResponseField>
-    <ResponseField name="default" type="string | number">
-      Default value when not specified.
-    </ResponseField>
-    <ResponseField name="values" type="object[]">
-      For `"select"` type parameters, the list of allowed values. Each entry has `code` and `label`.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
+A response with depth 1 usually has a `type`, `items`, and `breadcrumbs`. Folder items have `id` and `name`. Series items have `series_id` and `label`. Other fields depend on the provider.
 
-<ResponseField name="popular_series" type="object[]">
-  Curated series suggestions. Each item has `id` (the series ID) and `label` (a descriptive name).
-</ResponseField>
-
-<ResponseField name="license" type="string">
-  Data license.
-</ResponseField>
-
-<ResponseField name="api_key_url" type="string">
-  URL where you can register for an API key with the upstream provider, if applicable.
-</ResponseField>
-
-<ResponseField name="api_key_label" type="string">
-  Label for the API key field.
-</ResponseField>
-
-<ResponseField name="anonymous_limit_message" type="string">
-  Message describing rate limits or access restrictions without a key.
-</ResponseField>
-
-<ResponseField name="browse_root_label" type="string">
-  Display name for the root level of the provider's category tree. Example: `"Categories"` for FRED, `"Topics"` for World Bank.
-</ResponseField>
-
-<ResponseField name="series_id_placeholder" type="string">
-  Example series ID format for this provider. Example: `"e.g. GDP, UNRATE, CPIAUCSL"` for FRED.
-</ResponseField>
-
-<ResponseField name="has_user_api_key" type="boolean" required>
-  Whether your account has a stored API key for this provider. Always present; `false` when you are unauthenticated.
-</ResponseField>
-
-**Example response**
+```bash
+curl -u YOUR_API_KEY: https://api.alphacast.io/providers/worldbank/browse
+curl -u YOUR_API_KEY: "https://api.alphacast.io/providers/worldbank/browse?path=3&limit=20"
+```
 
 ```json
 {
-  "slug": "fred",
-  "name": "FRED Economic Data",
-  "provider": "Federal Reserve Bank of St. Louis",
-  "description": "Hundreds of thousands of economic time series from dozens of national, international, public, and private sources.",
-  "capabilities": ["search", "hierarchical", "direct"],
-  "parameters": [
-    {
-      "key": "units",
-      "label": "Units",
-      "type": "select",
-      "location": "query",
-      "default": "lin",
-      "values": [
-        {"code": "lin", "label": "Levels"},
-        {"code": "chg", "label": "Change"},
-        {"code": "pch", "label": "% Change"},
-        {"code": "pc1", "label": "% Change from Year Ago"},
-        {"code": "log", "label": "Log"}
-      ]
-    },
-    {
-      "key": "frequency",
-      "label": "Frequency",
-      "type": "select",
-      "location": "query",
-      "default": "",
-      "values": [
-        {"code": "", "label": "Native (no resampling)"},
-        {"code": "a", "label": "Annual"},
-        {"code": "q", "label": "Quarterly"},
-        {"code": "m", "label": "Monthly"}
-      ]
-    }
+  "type": "folder_list",
+  "items": [
+    { "id": "3", "name": "Economy & Growth", "type": "folder" }
   ],
-  "popular_series": [
-    {"id": "GDP", "label": "Gross Domestic Product"},
-    {"id": "UNRATE", "label": "Unemployment Rate"},
-    {"id": "CPIAUCSL", "label": "Consumer Price Index for All Urban Consumers"},
-    {"id": "FEDFUNDS", "label": "Federal Funds Effective Rate"},
-    {"id": "DGS10", "label": "10-Year Treasury Constant Maturity Rate"}
-  ],
-  "license": "Public Domain (mostly)",
-  "api_key_url": "https://fred.stlouisfed.org/docs/api/api_key.html",
-  "api_key_label": "FRED API Key",
-  "anonymous_limit_message": "A FRED API key is required. Get one for free.",
-  "browse_root_label": "Categories",
-  "series_id_placeholder": "e.g. GDP, UNRATE, CPIAUCSL",
-  "has_user_api_key": true
+  "breadcrumbs": []
 }
 ```
 
----
+<span id="get-/providers//search" style={{ scrollMarginTop: "8rem" }} />
 
-### GET /providers/{slug}/browse
+<span id="param-slug-4" style={{ scrollMarginTop: "8rem" }} />
 
-Navigates the hierarchical category structure of a provider. Only available for providers with the `"hierarchical"` capability. Use this to drill down through topics, surveys, or indicator categories before fetching individual series.
+<span id="param-q-1" style={{ scrollMarginTop: "8rem" }} />
 
-<Warning>
-Calling this endpoint on a provider without the `"hierarchical"` capability returns a `400` error. Check the `capabilities` array in `GET /providers` before using browse.
-</Warning>
+<span id="param-query" style={{ scrollMarginTop: "8rem" }} />
 
-**Path parameters**
+<span id="param-items" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="slug" type="string" required>
-  Provider slug.
-</ParamField>
+## Search a provider
 
-**Query parameters**
+```
+GET /providers/{slug}/search?q={query}
+```
 
-<ParamField query="path" type="string" default="">
-  Slash-separated navigation path within the provider's category tree. Omit or leave empty to start from the root. Example: `"National Accounts/GDP"`.
-</ParamField>
+Works with providers that have the `search` capability.
 
-<ParamField query="depth" type="number" default="1">
-  How many levels of the tree to prefetch in a single request. Maximum is `3`. Use `depth=1` (the default) to retrieve only the immediate children of the current path.
-</ParamField>
-
-<ParamField query="series" type="boolean">
-  When `true`, returns paginated series at the current path instead of sub-folders.
-</ParamField>
-
-<ParamField query="limit" type="number" default="200">
-  Page size when `series=true`. Maximum is `1000`.
-</ParamField>
-
-<ParamField query="offset" type="number" default="0">
-  Pagination offset when `series=true`.
-</ParamField>
+<ParamField query="q" type="string" required>Search text, up to 256 characters.</ParamField>
+<ParamField query="limit" type="integer" default="50">Maximum results, up to 1000. A provider can return fewer.</ParamField>
+<ParamField query="offset" type="integer">Results to skip, if the provider supports it.</ParamField>
 
 ```bash
-# Browse the root of the World Bank topic tree
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/providers/worldbank/browse"
-
-# Navigate into a specific topic, two levels deep
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/providers/worldbank/browse?path=Economy%20%26%20Growth&depth=2"
+curl -u YOUR_API_KEY: "https://api.alphacast.io/providers/fred/search?q=unemployment+rate&limit=2"
 ```
-
-**Example response (root browse)**
-
-```json
-[
-  {"label": "Economy & Growth", "path": "Economy & Growth"},
-  {"label": "Education", "path": "Education"},
-  {"label": "Energy & Mining", "path": "Energy & Mining"},
-  {"label": "Environment", "path": "Environment"},
-  {"label": "Financial Sector", "path": "Financial Sector"},
-  {"label": "Health", "path": "Health"},
-  {"label": "Social Development", "path": "Social Development"}
-]
-```
-
----
-
-### GET /providers/{slug}/search
-
-Searches for series within a specific provider by keyword. Only available for providers with the `"search"` capability.
-
-**Path parameters**
-
-<ParamField path="slug" type="string" required>
-  Provider slug.
-</ParamField>
-
-**Query parameters**
-
-<ParamField query="q" type="string" required>
-  Search query string. Returns `{"items": []}` when the query is empty.
-</ParamField>
-
-```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/providers/fred/search?q=unemployment+rate"
-```
-
-**Response fields**
-
-<ResponseField name="query" type="string" required>
-  The search query that was submitted.
-</ResponseField>
-
-<ResponseField name="items" type="object[]" required>
-  Array of matching series. Each item typically includes the series ID and a descriptive label. The exact structure depends on the provider's search implementation.
-</ResponseField>
-
-**Example response**
 
 ```json
 {
   "query": "unemployment rate",
+  "limit": 2,
+  "has_more": true,
   "items": [
-    {"id": "UNRATE", "label": "Unemployment Rate"},
-    {"id": "UNRATENSA", "label": "Unemployment Rate (Not Seasonally Adjusted)"},
-    {"id": "LNS14000006", "label": "Unemployment Rate - Black or African American"},
-    {"id": "LNS14000003", "label": "Unemployment Rate - Hispanic or Latino"}
+    { "series_id": "UNRATE", "label": "Unemployment Rate", "frequency": "M" },
+    { "series_id": "UNRATENSA", "label": "Unemployment Rate", "frequency": "M" }
   ]
 }
 ```
 
----
+Use `series_id` to [fetch the series](/api/providers/series). Other item fields depend on the provider.
 
-## User API key management
+<span id="user-api-key-management" style={{ scrollMarginTop: "8rem" }} />
 
-Some providers — such as FRED, INEGI, and BLS — require you to register for an API key directly with the upstream data source. You can store that key in your Alphacast account so it is applied automatically whenever you fetch data from that provider.
+<span id="get-/user-keys" style={{ scrollMarginTop: "8rem" }} />
 
-### GET /user-keys
+## List your provider keys
 
-Returns which providers you currently have API keys stored for. The actual key values are masked; only presence is indicated.
+```
+GET /user-keys
+```
 
-<Note>
-This endpoint requires authentication. Unauthenticated requests will fail.
-</Note>
+Shows which providers have a saved key. It does not return the keys.
+
+```json
+{ "fred": true, "bls": true }
+```
+
+<span id="put-/user-keys/" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-slug-5" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-slug-6" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-has-key" style={{ scrollMarginTop: "8rem" }} />
+
+## Save a provider key
+
+```
+PUT /user-keys/{slug}
+```
+
+<ParamField body="api_key" type="string">The key from the provider. Send `null` or an empty string to remove the saved key. A request without this field also removes it.</ParamField>
 
 ```bash
-curl -u YOUR_API_KEY: https://api.alphacast.io/user-keys
-```
-
-**Example response**
-
-```json
-{
-  "fred": true,
-  "bls": true
-}
-```
-
-Each key in the response object is a provider slug. A value of `true` means you have a stored key for that provider.
-
----
-
-### PUT /user-keys/{slug}
-
-Saves or deletes your API key for a specific provider. Send the key as `api_key` in the JSON body. Send `null` or an empty string to remove a previously stored key.
-
-**Path parameters**
-
-<ParamField path="slug" type="string" required>
-  Provider slug. Must match an existing provider in the catalog.
-</ParamField>
-
-**Request body**
-
-<ParamField body="api_key" type="string">
-  Your API key for the upstream provider. Pass `null` or omit the field to delete the stored key.
-</ParamField>
-
-<RequestExample>
-
-```bash cURL
-# Save a FRED API key
 curl -u YOUR_API_KEY: \
   -X PUT https://api.alphacast.io/user-keys/fred \
   -H "Content-Type: application/json" \
-  -d '{"api_key": "your-fred-api-key-here"}'
-
-# Remove the stored FRED API key
-curl -u YOUR_API_KEY: \
-  -X PUT https://api.alphacast.io/user-keys/fred \
-  -H "Content-Type: application/json" \
-  -d '{"api_key": null}'
+  -d '{"api_key": "YOUR_FRED_API_KEY"}'
 ```
-
-```python Python
-import requests
-
-# Save a FRED API key
-requests.put(
-    "https://api.alphacast.io/user-keys/fred",
-    auth=("YOUR_API_KEY", ""),
-    json={"api_key": "your-fred-api-key-here"},
-)
-
-# Remove the stored FRED API key
-requests.put(
-    "https://api.alphacast.io/user-keys/fred",
-    auth=("YOUR_API_KEY", ""),
-    json={"api_key": None},
-)
-```
-
-```javascript Node.js
-// Save a FRED API key
-await fetch("https://api.alphacast.io/user-keys/fred", {
-  method: "PUT",
-  headers: {
-    Authorization: "Basic " + btoa("YOUR_API_KEY:"),
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ api_key: "your-fred-api-key-here" }),
-});
-
-// Remove the stored FRED API key
-await fetch("https://api.alphacast.io/user-keys/fred", {
-  method: "PUT",
-  headers: {
-    Authorization: "Basic " + btoa("YOUR_API_KEY:"),
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ api_key: null }),
-});
-```
-
-</RequestExample>
-
-**Response fields**
-
-<ResponseField name="slug" type="string" required>
-  Provider slug that was updated.
-</ResponseField>
-
-<ResponseField name="has_key" type="boolean" required>
-  `true` if a key is now stored, `false` if the key was removed.
-</ResponseField>
-
-**Example response**
 
 ```json
-{
-  "slug": "fred",
-  "has_key": true
-}
+{ "slug": "fred", "has_key": true }
 ```
 
-<Tip>
-After saving a key, all subsequent requests to `GET /providers/fred/series/{series_id}` and `POST /providers/fred/series/{series_id}/data` will automatically use it — you do not need to pass it explicitly in each request.
-</Tip>
+Follow the provider's `api_key_label` for the format. For example, `bcch` takes `user:password`. For `indec`, check the expiration date of your token in your INDEC account.
+
+You can also manage provider keys in [your settings](https://www.alphacast.io/settings).
+
+## Error responses
+
+| Status | Meaning |
+|---|---|
+| `400` | Invalid parameter, or the provider does not support the operation. |
+| `401` | A key endpoint was called without a valid Alphacast API key. |
+| `404` | Provider not found. |
+| `429` | The provider's rate limit was reached. |
+| `501` | The operation is not implemented for this provider. |
+| `502` | The provider or the provider service failed. |
+
+These endpoints report errors in an `error` field. A `401` might not be JSON.

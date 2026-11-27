@@ -1,0 +1,70 @@
+---
+title: "Upload files for AI search"
+sidebarTitle: "Files"
+description: "Add documents to a repository so you can read them and ask Alphacast AI about their content."
+---
+
+Use files for reports and other documents. After Alphacast processes a file, the AI can search it and answer questions about it. For tables you want to chart, create a [dataset](/your-data/datasets).
+
+Uploading files requires a [plan](https://www.alphacast.io/pricing) that includes it.
+
+## Supported files
+
+- PDF, DOC, DOCX, PPTX, XLS, XLSX, TXT, HTML and HTM.
+- Up to 100 MB per file and 50 files per upload.
+
+Macro-enabled Excel files are not accepted.
+
+## Upload files
+
+<Steps>
+  <Step title="Open the Files tab">
+    Open a repository where you can write and go to **Files**.
+  </Step>
+  <Step title="Add your files">
+    Start an upload and select files, or drop folders to keep their structure. You can also create a new subfolder.
+  </Step>
+  <Step title="Resolve duplicates">
+    If Alphacast finds duplicates, choose **Skip**, **Overwrite** or **Keep Both**, then click **Continue Upload**.
+  </Step>
+</Steps>
+
+## Make a file searchable
+
+Open the file and click **Process Document**. For some formats, you can select which pages, slides or sheet to include. Enter page ranges like `1,2,3-5,8`.
+
+Processing takes a while. The file list shows the status:
+
+| Status | Meaning |
+| --- | --- |
+| **AI Ready** | AI can search the document |
+| **Not Processed** | You have not processed it yet |
+| **Queued** or **Processing...** | Work is in progress |
+| **Error** | Processing failed. Try again |
+| **Not supported** | This file type cannot be processed |
+
+Repository admins can process several files at once under **Settings > AI File Processing**.
+
+Then ask [Alphacast AI](/ai) about the content. Check important figures against the original document.
+
+## Read and manage files
+
+- Open a file to review it. Use **Download** to get the original.
+- Use the file's **Settings** tab to change its name or description, or to delete it.
+- In the file list, you can move or delete files, and rename or delete folders.
+- On some processed pages with tables, you can use **Extract Dataset** to turn a table into a dataset. Review the result before you publish it.
+
+<Warning>
+  Deleting a file cannot be undone.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Sync from SharePoint or OneDrive" icon="rotate" href="/your-data/sync#sync-files-from-sharepoint-or-onedrive">
+    Bring in folders from Microsoft 365.
+  </Card>
+  <Card title="Ask Alphacast AI" icon="sparkles" href="/ai">
+    Ask questions about your documents.
+  </Card>
+</CardGroup>

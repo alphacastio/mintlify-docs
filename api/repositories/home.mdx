@@ -1,80 +1,53 @@
 ---
-title: "GET /repositories/home — Get Home Repository"
+title: "GET /repositories/home — Get your home repository"
 sidebarTitle: "Home repository"
-description: "Retrieve the authenticated user's Home repository — the default workspace where pipelines and datasets land when no specific repository is named."
+description: "Get your personal Home repository, or the default writable repository for your API key's workspace."
 ---
 
-Use this endpoint to resolve your account's Home repository. The Home repository is the default destination when creating pipelines or datasets without specifying a `repositoryId`. The response has the same shape as `GET /repositories/{id}`.
+Returns your personal **Home** repository. Use its `id` when you want to save datasets or pipelines there. Create requests still need an explicit `repositoryId`.
 
-<Note>
-  **Workspace-aware alternative — `GET /repositories/default`.** If your account belongs to multiple teams/workspaces, prefer `GET /repositories/default`. It returns the default writable repository for the API key's **currently active workspace**, whereas `/repositories/home` always resolves the single per-user Home repo. The Alphacast MCP server uses `/repositories/default` when it auto-resolves a repository. Both endpoints return the same repository object shape.
-</Note>
-
-## Request
-
-```bash
+```
 GET https://api.alphacast.io/repositories/home
 ```
 
-## Authentication
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-<Note>
-  This endpoint requires HTTP Basic Auth. Pass your API key as the username and leave the password empty.
-</Note>
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
+
+Requires [Basic Auth](/authentication).
+
+<span id="param-id" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-name" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-description" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-privacy" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-team" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-permission" style={{ scrollMarginTop: "8rem" }} />
 
 ## Response
 
-Returns a single repository object — the same structure as [`GET /repositories/{id}`](/api/repositories/get).
+The same fields as [Get a repository](/api/repositories/get). If there is no Home repository, the API returns `404`.
 
-<ResponseField name="id" type="integer">
-  Unique numeric identifier for the Home repository.
-</ResponseField>
-
-<ResponseField name="name" type="string">
-  Display name of the repository.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional description of the repository's contents or purpose.
-</ResponseField>
-
-<ResponseField name="privacy" type="string">
-  Visibility setting. Either `"Public"` or `"Private"`.
-</ResponseField>
-
-<ResponseField name="team" type="string">
-  The team this repository belongs to, if applicable.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your access level. For your Home repository this is always `"Owner"`.
-</ResponseField>
-
-## Example
+<span id="example" style={{ scrollMarginTop: "8rem" }} />
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: \
-  https://api.alphacast.io/repositories/home
+curl -u YOUR_API_KEY: https://api.alphacast.io/repositories/home
 ```
 
 ```python Python
 import requests
 
-response = requests.get(
+home = requests.get(
     "https://api.alphacast.io/repositories/home",
     auth=("YOUR_API_KEY", ""),
-)
-home = response.json()
-print(home["id"])  # use this ID when creating datasets or pipelines
-```
-
-```javascript Node.js
-const response = await fetch("https://api.alphacast.io/repositories/home", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
-const home = await response.json();
+).json()
+print(home["id"])
 ```
 
 </RequestExample>
@@ -85,15 +58,28 @@ const home = await response.json();
 {
   "id": 42,
   "name": "Home",
+  "accountId": 12,
   "description": null,
   "privacy": "Private",
-  "team": null,
+  "slug": "home-42",
   "permission": "Owner"
 }
 ```
 
+```json 404
+{ "message": "Home repository doesn't exist" }
+```
+
 </ResponseExample>
 
-<Tip>
-  Store the Home repository ID if you plan to create multiple datasets or pipelines — it saves a round-trip on each creation request.
-</Tip>
+## Get the default repository of a workspace
+
+```
+GET https://api.alphacast.io/repositories/default
+```
+
+Returns the default writable repository for the workspace of your API key. This can be your [working repository](/concepts/repositories#choose-your-working-repository). In your personal workspace, it falls back to Home. A team workspace with no usable default returns `404`.
+
+```bash
+curl -u YOUR_API_KEY: https://api.alphacast.io/repositories/default
+```

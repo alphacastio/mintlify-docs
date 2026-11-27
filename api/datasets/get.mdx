@@ -1,29 +1,61 @@
 ---
-title: "GET /datasets/{id} — Get a Dataset"
+title: "GET /datasets/{id} — Get a dataset"
 sidebarTitle: "Get a dataset"
-description: "Retrieve a single dataset by numeric ID, including its name, repository, description, column schema, date range, and your permission level."
+description: "Get a dataset's metadata, columns, frequency, and date range."
 ---
 
-Use this endpoint to retrieve full metadata for a specific dataset, including its column definitions and date range. This is useful before downloading data, as it lets you inspect the available columns and verify you have the right dataset. A supplementary endpoint, `GET /datasets/{id}/date-stats`, returns precise frequency and date-range information computed directly from the stored data.
+```
+GET https://api.alphacast.io/datasets/{dataset_id}
+```
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-Authenticate using HTTP Basic Auth. Pass your API key as the username and leave the password empty.
+<span id="endpoints" style={{ scrollMarginTop: "8rem" }} />
 
-## Endpoints
+<span id="get-dataset-metadata" style={{ scrollMarginTop: "8rem" }} />
 
-| Method | URL | Description |
-|--------|-----|-------------|
-| `GET` | `/datasets/{dataset_id}` | Retrieve dataset metadata |
-| `GET` | `/datasets/{dataset_id}/date-stats` | Retrieve inferred frequency and date range |
+Requires [Basic Auth](/authentication). You can get datasets in repositories that you have permission on, and in public repositories.
 
 ## Path parameters
 
-<ParamField path="dataset_id" type="integer" required>
-  The numeric ID of the dataset to retrieve.
-</ParamField>
+<ParamField path="dataset_id" type="integer" required>Dataset ID.</ParamField>
 
-## Get dataset metadata
+## Response
+
+<span id="param-description" style={{ scrollMarginTop: "8rem" }} />
+
+<ResponseField name="id" type="integer">Dataset ID.</ResponseField>
+<ResponseField name="name" type="string">Dataset name.</ResponseField>
+<ResponseField name="createdAt" type="string">Creation time.</ResponseField>
+<ResponseField name="updatedAt" type="string">Last metadata update.</ResponseField>
+<ResponseField name="dataEditedAt" type="string">Last data update. Can be `null`.</ResponseField>
+<ResponseField name="frequency" type="string">Frequency code, such as `D`, `M`, `Q`, or `A`. Can be `null`.</ResponseField>
+<ResponseField name="minDate" type="string">First date. Can be `null`.</ResponseField>
+<ResponseField name="maxDate" type="string">Last date. Can be `null`.</ResponseField>
+<ResponseField name="repositoryId" type="integer">Repository ID.</ResponseField>
+<ResponseField name="permission" type="string">Your permission: `Owner`, `Admin`, `Write`, `Clone`, or `Read`.</ResponseField>
+<ResponseField name="pipelineId" type="integer">Linked pipeline. Can be `null`.</ResponseField>
+<ResponseField name="tags" type="object[]">Tags, each with `id` and `name`.</ResponseField>
+<span id="param-source-name" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-source-url" style={{ scrollMarginTop: "8rem" }} />
+
+<ResponseField name="source" type="object">Data source with `id` and `name`. Can be `null`.</ResponseField>
+<ResponseField name="publication" type="object">Publication with `id` and `name`. Can be `null`.</ResponseField>
+<ResponseField name="columns" type="object[]">
+  Columns of the dataset. Empty before the first upload is processed.
+
+  <Expandable title="column properties">
+    <ResponseField name="id" type="integer">Column ID. You can use it in `$select`.</ResponseField>
+    <ResponseField name="name" type="string">Column name.</ResponseField>
+    <ResponseField name="dataType" type="string">`Date`, `String`, or `Decimal`.</ResponseField>
+    <ResponseField name="isEntity" type="integer">`1` for date and entity columns, `0` for value columns.</ResponseField>
+  </Expandable>
+</ResponseField>
+
+<span id="example-response" style={{ scrollMarginTop: "8rem" }} />
+
+## Example
 
 <RequestExample>
 
@@ -38,133 +70,114 @@ response = requests.get(
     "https://api.alphacast.io/datasets/123",
     auth=("YOUR_API_KEY", ""),
 )
+response.raise_for_status()
 dataset = response.json()
+print(dataset["name"], dataset["maxDate"], [c["name"] for c in dataset["columns"]])
 ```
 
 ```javascript Node.js
-const response = await fetch("https://api.alphacast.io/datasets/123", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
+const headers = { Authorization: "Basic " + btoa("YOUR_API_KEY:") };
+
+const response = await fetch("https://api.alphacast.io/datasets/123", { headers });
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
 const dataset = await response.json();
 ```
 
 </RequestExample>
 
-### Response
+<ResponseExample>
 
-<ResponseField name="id" type="integer">
-  Unique numeric identifier for the dataset.
-</ResponseField>
-
-<ResponseField name="name" type="string">
-  Display name of the dataset.
-</ResponseField>
-
-<ResponseField name="repositoryId" type="integer">
-  ID of the repository this dataset belongs to.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional human-readable description.
-</ResponseField>
-
-<ResponseField name="sourceName" type="string">
-  Name of the original data source.
-</ResponseField>
-
-<ResponseField name="sourceUrl" type="string">
-  URL linking to the original data source.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your permission level: `Read`, `Write`, or `Admin`.
-</ResponseField>
-
-<ResponseField name="frequency" type="string">
-  Inferred data frequency (e.g., `monthly`, `quarterly`, `daily`). May be `null` if not yet computed.
-</ResponseField>
-
-<ResponseField name="minDate" type="string">
-  Earliest date in the dataset (`YYYY-MM-DD`). May be `null` for empty datasets.
-</ResponseField>
-
-<ResponseField name="maxDate" type="string">
-  Latest date in the dataset (`YYYY-MM-DD`). May be `null` for empty datasets.
-</ResponseField>
-
-<ResponseField name="columns" type="array">
-  Array of column definition objects describing the dataset schema.
-
-  <Expandable title="column properties">
-    <ResponseField name="id" type="integer">
-      Unique column ID. Use this value with `$select` to reference columns reliably across renames.
-    </ResponseField>
-    <ResponseField name="name" type="string">
-      Column display name.
-    </ResponseField>
-    <ResponseField name="dataType" type="string">
-      Data type of the column. One of `Date`, `String`, or `Decimal`.
-    </ResponseField>
-    <ResponseField name="isEntity" type="boolean">
-      When `true`, this column is a dimension or index column (e.g., `Date`, `Country`). When `false`, it is a value column.
-    </ResponseField>
-  </Expandable>
-</ResponseField>
-
-### Example response
-
-```json
+```json 200
 {
   "id": 123,
   "name": "US GDP Quarterly",
+  "createdAt": "2026-01-10T12:00:00",
+  "updatedAt": "2026-02-01T09:15:00",
+  "dataEditedAt": "2026-02-01T09:15:00",
+  "frequency": "Q",
+  "minDate": "2010-01-01",
+  "maxDate": "2025-10-01",
   "repositoryId": 45,
-  "description": "Quarterly US GDP figures from BEA",
-  "sourceName": "Bureau of Economic Analysis",
-  "sourceUrl": "https://www.bea.gov/data/gdp",
-  "permission": "Admin",
-  "frequency": "quarterly",
-  "minDate": "1947-01-01",
-  "maxDate": "2024-10-01",
+  "permission": "Owner",
+  "pipelineId": null,
+  "source": null,
+  "publication": null,
+  "tags": [],
   "columns": [
-    { "id": 1, "name": "Date", "dataType": "Date", "isEntity": true },
-    { "id": 2, "name": "Country", "dataType": "String", "isEntity": true },
-    { "id": 3, "name": "GDP", "dataType": "Decimal", "isEntity": false }
+    { "id": 1, "name": "Date", "isEntity": 1, "dataType": "Date" },
+    { "id": 2, "name": "Country", "isEntity": 1, "dataType": "String" },
+    { "id": 3, "name": "GDP", "isEntity": 0, "dataType": "Decimal" }
   ]
 }
 ```
 
+```json 404
+{ "message": "Dataset 123 doesn't exist" }
+```
+
+</ResponseExample>
+
 ## Get date statistics
 
-The `/date-stats` endpoint returns frequency and date range information computed live from the dataset's stored data. If the dataset record already has a cached `frequency`, `minDate`, and `maxDate`, those cached values are returned immediately. Otherwise, the values are computed from the column data on demand.
+```
+GET https://api.alphacast.io/datasets/{dataset_id}/date-stats
+```
+
+<span id="response-2" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-infered-freq" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-min-date-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-max-date-1" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="example-response-2" style={{ scrollMarginTop: "8rem" }} />
+
+Returns the frequency and date range of the dataset.
 
 ```bash
 curl -u YOUR_API_KEY: https://api.alphacast.io/datasets/123/date-stats
 ```
 
-### Response
-
-<ResponseField name="inferedFreq" type="string">
-  The inferred data frequency, such as `monthly`, `quarterly`, or `daily`.
-</ResponseField>
-
-<ResponseField name="minDate" type="string">
-  The earliest date found in the dataset (`YYYY-MM-DD`).
-</ResponseField>
-
-<ResponseField name="maxDate" type="string">
-  The latest date found in the dataset (`YYYY-MM-DD`).
-</ResponseField>
-
-### Example response
-
 ```json
-{
-  "inferedFreq": "quarterly",
-  "minDate": "1947-01-01",
-  "maxDate": "2024-10-01"
-}
+{ "inferedFreq": "Q", "minDate": "2010-01-01", "maxDate": "2025-10-01" }
 ```
 
-<Note>
-  The `/date-stats` endpoint supports optional authentication. Public datasets can be queried without an API key, while private datasets require authentication.
-</Note>
+The field name is spelled `inferedFreq`.
+
+## Rename or move a dataset
+
+```
+PUT https://api.alphacast.io/datasets/{dataset_id}
+```
+
+Requires [Basic Auth](/authentication) and `Admin` or `Owner` permission on the dataset.
+
+<ParamField body="name" type="string" required>The new name. To move a dataset without renaming it, send its current name.</ParamField>
+<ParamField body="repositoryId" type="integer">Repository to move the dataset to. You need `Write` permission on it. That repository cannot already have a dataset with the same name.</ParamField>
+
+This endpoint does not change tags. A request with a `tags` field returns `400`.
+
+Returns `201` with `id`, `name`, and `updateAt`. The field name is spelled `updateAt`.
+
+Rename a dataset:
+
+```bash
+curl -u YOUR_API_KEY: \
+  -X PUT https://api.alphacast.io/datasets/123 \
+  -H "Content-Type: application/json" \
+  -d '{"name": "US GDP, quarterly"}'
+```
+
+To move it to another repository, add `repositoryId`:
+
+```bash
+curl -u YOUR_API_KEY: \
+  -X PUT https://api.alphacast.io/datasets/123 \
+  -H "Content-Type: application/json" \
+  -d '{"name": "US GDP, quarterly", "repositoryId": 46}'
+```
+
+If you rename a dataset to a name that its repository already uses, the API returns `409` with the code `dataset_name_taken`.

@@ -6,7 +6,7 @@ This repository contains the public documentation published at https://learn.alp
 
 - Write pages as MDX with YAML frontmatter.
 - Configure the site and navigation in `docs.json`.
-- Check `.mintignore` before exposing existing content. Some pipeline API pages and integrations are intentionally unpublished.
+- Check `.mintignore` before exposing existing content. The pipelines API pages (`api/pipelines/`) are intentionally unpublished.
 - Consult https://www.mintlify.com/docs for current Mintlify configuration and component behavior.
 
 ## Writing and terminology

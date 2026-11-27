@@ -4,9 +4,29 @@ sidebarTitle: "Overview"
 description: "How pipelines work in Alphacast, and a map of every step available — from importing data to publishing the result."
 ---
 
-A **pipeline** is an ordered chain of steps that turns source data into something you can publish, chart or download. Each step takes the output of the previous one as its input, so the data is reshaped progressively from the first step to the last.
+<span id="configuration" style={{ scrollMarginTop: "8rem" }} />
 
-Pipelines are reproducible: when a source dataset updates, the pipeline reruns and everything downstream follows. That is what makes a [published dataset](/steps/publish) stay current without anyone touching it.
+<span id="what-to-use-it-for" style={{ scrollMarginTop: "8rem" }} />
+
+A **pipeline** is an ordered chain of steps that turns source data into something you can publish, chart or download. By default, each step takes the output of the previous one as its input, so the data is reshaped progressively from the first step to the last.
+
+Pipelines are reproducible: when an Alphacast dataset used as a source updates, the pipeline can run again and refresh its outputs, such as a [published dataset](/steps/publish). See [when a pipeline runs](/pipelines/runs#when-a-pipeline-runs).
+
+Creating pipelines requires a [plan](https://www.alphacast.io/pricing) that can create content, and Write access to a repository.
+
+## Guides
+
+<CardGroup cols={3}>
+  <Card title="Build with AI" icon="sparkles" href="/pipelines/build-with-ai">
+    Describe what you need and approve each change.
+  </Card>
+  <Card title="Runs" icon="play" href="/pipelines/runs">
+    Run, preview, fix and undo.
+  </Card>
+  <Card title="Alerts" icon="bell" href="/pipelines/alerts">
+    Get notified when your data meets a condition.
+  </Card>
+</CardGroup>
 
 ## The shape of a pipeline
 
@@ -84,7 +104,7 @@ The [formula reference](/steps/formula-reference) documents the grammar shared b
 |---|---|
 | [Transform with AI](/steps/ai-transform) | Describe a transformation and let AI write the Python. |
 | [Summarize with AI](/steps/ai-summary) | Generate a written summary of the data. |
-| [Create AI View](/steps/ai-visualization) | Build a view from the output of several earlier steps. |
+| [Create AI View](/steps/ai-visualization) | Build a view from the output of earlier steps. |
 
 ### Outputs
 
@@ -95,10 +115,10 @@ The [formula reference](/steps/formula-reference) documents the grammar shared b
 | [Create a Table](/steps/table-view) | Render the data as a table for a dashboard. |
 | [Create a Deck of views](/steps/deck-view) | Several views over one dataset, with shared filters. |
 | [Data Snapshot](/steps/data-snapshot) | Produce a downloadable, embeddable snapshot. |
-| [Add markdown text](/steps/markdown) | Document the pipeline inline. |
+| [Send a notification](/steps/notification) | Get notified when the data meets a condition. In the editor, it appears under **Alphacast AI**. |
 
 <Note>
-Pipelines can also be built and run by AI agents. The Alphacast MCP server exposes the full pipeline lifecycle — creating pipelines, adding and editing steps, previewing output and triggering runs. See [Pipeline tools](/mcp/tools/pipelines).
+You can also build pipelines from your own AI assistant. The Alphacast MCP server has tools to create pipelines, add, edit and delete steps, preview output and follow runs. Saving a change starts a run. See [Pipeline tools](/mcp/tools/pipelines).
 </Note>
 
 ## Next steps

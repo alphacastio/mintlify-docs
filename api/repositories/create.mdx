@@ -20,6 +20,8 @@ Send a JSON body with the `Content-Type: application/json` header.
   This endpoint requires HTTP Basic Auth. Pass your API key as the username and leave the password empty.
 </Note>
 
+<span id="param-team-1" style={{ scrollMarginTop: "8rem" }} />
+
 ## Body parameters
 
 <ParamField body="name" type="string" required>
@@ -37,6 +39,8 @@ Send a JSON body with the `Content-Type: application/json` header.
 <ParamField body="team" type="string">
   Optional team name to associate this repository with for collaborative access.
 </ParamField>
+
+<span id="param-permission" style={{ scrollMarginTop: "8rem" }} />
 
 ## Response
 
@@ -58,12 +62,8 @@ Returns `201 Created` with the newly created repository object.
   Visibility setting. Either `"Public"` or `"Private"`.
 </ResponseField>
 
-<ResponseField name="team" type="string">
-  The team this repository belongs to, if provided.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your access level. Always `"Owner"` for repositories you create.
+<ResponseField name="slug" type="string">
+  URL-friendly identifier built from the name and the repository ID.
 </ResponseField>
 
 ## Example
@@ -126,8 +126,7 @@ const repository = await response.json();
   "name": "Emerging Markets Macro",
   "description": "GDP, inflation, and rates for EM economies",
   "privacy": "Private",
-  "team": "research",
-  "permission": "Owner"
+  "slug": "emerging-markets-macro-101"
 }
 ```
 

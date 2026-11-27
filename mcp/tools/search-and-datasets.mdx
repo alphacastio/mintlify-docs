@@ -4,18 +4,20 @@ sidebarTitle: "Search & datasets"
 description: "Tools for discovering content in the Alphacast catalog, reading dataset metadata, schemas, and rows, and resolving the workspace's default repository."
 ---
 
-These eight tools cover discovery and read access. None of them mutate state, so you can safely chain them together to explore Alphacast.
+These eight tools cover discovery and read access. They don't change your datasets or repositories. Dataset reads can count toward your plan's download usage.
+
+For questions about your Workspace's data, start with [`list_agent_prompts`](/mcp/tools/workspace#list_agent_prompts).
 
 ## `search_catalog`
 
-Search the curated Alphacast catalog (default) or every public repository.
+Search the curated Alphacast catalog (default). Not available when your Workspace has catalog exploration turned off.
 
 <ParamField body="query" type="string" required>
-  Search query. Tokenized server-side; multi-word queries score every term.
+  Search query.
 </ParamField>
 
 <ParamField body="asset" type="string" default="datasets">
-  Type of asset to return. One of `datasets`, `charts`, `insights`, `repositories`, `accounts`, `dashboards`, `series`, `tickers`.
+  Type of asset to return. One of `datasets`, `charts`, `repositories`, `accounts`, `dashboards`, `series`, `tickers`.
 </ParamField>
 
 <ParamField body="limit" type="number" default="10">
@@ -35,18 +37,16 @@ Search the curated Alphacast catalog (default) or every public repository.
 </ParamField>
 
 <ParamField body="searchAllAlphacast" type="boolean" default="false">
-  Set to `true` to search every public repository instead of just the curated catalog.
+  Set to `true` only when you want your own accessible data and repositories included together with the curated results.
 </ParamField>
 
 <ParamField body="excludeDeprecated" type="boolean" default="false">
-  When `true`, deprecated datasets are excluded from results.
+  When `true`, deprecated datasets are excluded from results. Applies to `asset: "datasets"`.
 </ParamField>
 
 **Example prompt**
 
 > "Find Argentina inflation series in the curated catalog."
-
-**Underlying endpoint:** `GET /api/search`.
 
 ---
 
@@ -64,35 +64,79 @@ Returns the dataset's name, description, repository, last update timestamp, and 
 
 > "Show me the schema of dataset 12345."
 
-**Underlying endpoints:** `GET /datasets/{id}` + `GET /datasets/{id}/columns` (called in parallel).
-
 ---
 
 ## `download_dataset`
 
-Download the current rows of a dataset.
+Read a dataset, or a selection of its columns, entities and dates. Entity columns are always included, and rows with missing values are kept.
 
 <ParamField body="datasetId" type="number" required>
   Numeric dataset ID.
 </ParamField>
 
-<ParamField body="format" type="string" default="json">
-  `json` returns an array of objects. `csv` returns a CSV string.
+<ParamField body="columnIds" type="number[]">
+  Columns to include, using column IDs from `get_dataset`. From 1 to 100. Omit to include all columns.
 </ParamField>
 
-Internally follows S3 redirects so the model receives the raw rows directly.
+<ParamField body="entityFilters" type="object[]">
+  Up to 20 filters, each `{ name, values }`. `name` is the exact column name. `values` is a list of 1 to 100 strings matched exactly. A row must match one value in every filter.
+</ParamField>
+
+<ParamField body="from" type="string">
+  Inclusive start date, `YYYY-MM-DD`. Requires a dataset with exactly one date column.
+</ParamField>
+
+<ParamField body="to" type="string">
+  Inclusive end date, `YYYY-MM-DD`. Same requirement as `from`.
+</ParamField>
+
+<ParamField body="limit" type="number">
+  Maximum rows returned in the response, from 1 to 5000. The hosted server defaults to 100. On the local server, setting `limit` or `window` returns a limited preview.
+</ParamField>
+
+<ParamField body="window" type="string">
+  `first` (default) or `last` rows of the selection, in the dataset's existing order. Setting it on the local server returns a preview with a default limit of 100.
+</ParamField>
+
+<ParamField body="format" type="string" default="json">
+  `json` or `csv`.
+</ParamField>
+
+<ParamField body="outputMode" type="string" default="auto">
+  Depends on the transport. Hosted: `auto`, `inline` or `url`. Local: `auto`, `inline` or `file`. See the table below.
+</ParamField>
+
+<ParamField body="maxInlineChars" type="number" default="50000">
+  Character budget for the response, from 1000 to 500000. It can reduce the number of rows in a preview. It does not limit a downloaded or saved file.
+</ParamField>
+
+### Output modes
+
+| Transport | `outputMode` | Result |
+|---|---|---|
+| Hosted | `auto` | Limited rows, plus a download link for the full selection when the rows are incomplete or their completeness is unknown. If no preview fits, only the link. |
+| Hosted | `inline` | Limited rows only. |
+| Hosted | `url` | A download link only. Omit `limit` and `window`. |
+| Local, without `limit` or `window` | `auto` | The full selection. Small results come back in the response; large ones are saved to a temporary file on your machine. |
+| Local, without `limit` or `window` | `inline` | The response, cut off at `maxInlineChars` if it is longer. |
+| Local, without `limit` or `window` | `file` | The full selection saved to a temporary file. |
+| Local, with `limit` or `window` | `auto`, `inline` | Limited rows. `file` is not available. |
+
+A download link covers the full filtered selection and ignores `limit` and `window`. It expires after 15 minutes. Anyone who has the link can use it until then, so don't share it. Access and quota are checked again when the link is opened.
+
+Limited results report `returnedRows`, `totalRows` (when known) and `coverage`: `complete-response`, `partial` or `unknown`. Don't compute totals or rankings from a `partial` or `unknown` result. There is no offset pagination: narrow the filters, or get the full selection. A limited query is also capped at 4 MB.
+
+This tool needs the `mcp:read` scope.
 
 **Example prompt**
 
-> "Download dataset 12345 as CSV and tell me the date range."
-
-**Underlying endpoint:** `GET /datasets/{id}/data?$format=...`.
+> "From dataset 12345, give me the last 24 rows for Argentina as CSV."
 
 ---
 
 ## `list_datasets`
 
-List every dataset the API key can read.
+List the datasets you have access to.
 
 No input parameters. Returns one row per dataset with `id`, `name`, `repositoryId`, and `frequency`.
 
@@ -100,15 +144,13 @@ No input parameters. Returns one row per dataset with `id`, `name`, `repositoryI
 
 > "List all datasets I have access to and pick the ones tagged 'Argentina'."
 
-**Underlying endpoint:** `GET /datasets`.
-
 ---
 
 ## `list_repositories`
 
-List repositories where the API key can publish (Owner, Admin, or Write).
+List the repositories you can publish to (Owner, Admin or Write). The default repository is marked and listed first.
 
-No input parameters. Filtered server-side; read-only repositories are excluded so the model only sees repositories it can write to.
+No input parameters. Read-only repositories are not listed.
 
 <Tip>
   Tools that accept an optional `repositoryId` (for example [`create_pipeline`](/mcp/tools/pipelines#create_pipeline)) **default to the workspace's default repository** when no ID is provided — the server does not interrupt to ask you to pick one. Call `list_repositories` only when you want to write somewhere other than the default, or `get_default_repository` to check which repo the default resolves to.
@@ -117,8 +159,6 @@ No input parameters. Filtered server-side; read-only repositories are excluded s
 **Example prompt**
 
 > "Which repos can I publish into?"
-
-**Underlying endpoint:** `GET /repositories` (with client-side permission filter).
 
 ---
 
@@ -136,21 +176,17 @@ Returns name, description, privacy, your permission level, and timestamps.
 
 > "What's the description of repository 1042 and who owns it?"
 
-**Underlying endpoint:** `GET /repositories/{id}`.
-
 ---
 
 ## `get_default_repository`
 
-Resolve the **default repository** — the current writable repository for this API key's active workspace, where pipelines and datasets land when no specific repository is named. Use it to inspect what the default points at before creating a pipeline, or to share its ID with collaborators.
+Return the **default repository**: the current writable repository in the connection's Workspace, where pipelines and datasets land when no specific repository is named. Use it to inspect what the default points at before creating a pipeline, or to share its ID with collaborators.
 
 No input parameters. Returns the repository as if you had called `get_repository` on it.
 
 **Example prompt**
 
 > "What's my default Alphacast repository?"
-
-**Underlying endpoint:** `GET /repositories/default`.
 
 ---
 
@@ -166,10 +202,8 @@ Comprehensive inspection of a dataset: column schema, entity values, date range 
   Number of sample rows to include in the response. Maximum 50. Set to `0` to skip the sample entirely.
 </ParamField>
 
-Returns `dataset` metadata, `columns`, `entities`, `dateStats` (date range and frequency), `rowCount`, and a `sample` array. Individual sections gracefully degrade if unavailable.
+Returns `dataset` metadata, `columns`, `entities`, `dateStats` (date range and frequency), `rowCount` when available, and a `sample` array. For entity columns with more than 50 values, it returns the count and a sample of 10. If a section is unavailable, the rest is still returned.
 
 **Example prompt**
 
 > "Profile dataset 12345 — how many rows does it have, what entities does it cover, and show me 5 sample rows."
-
-**Underlying endpoints:** `GET /datasets/{id}` + `GET /datasets/{id}/columns` + `GET /datasets/{id}/entities` + `GET /datasets/{id}/date-stats` + `GET /datasets/{id}/data?$top=N` (called in parallel).

@@ -1,75 +1,54 @@
 ---
 title: "Series"
-description: "Read metadata and data for a single Alphacast series by ID using the Python SDK."
+description: "Read the metadata and data of a single Alphacast series with the Python SDK."
 ---
 
-A **series** is a single time-indexed variable inside a dataset — for example, the headline CPI of a single country. Series are addressable by ID across all of Alphacast, so you can pull them directly without going through their parent dataset.
-
-The SDK exposes series via `alphacast.series(series_id)`, which returns a `Series` handle.
-
-```python
-from alphacast import Alphacast
-
-alphacast = Alphacast("YOUR_API_KEY")
-series = alphacast.series(12345)
-```
-
-<Info>
-  You need read permission on the parent dataset to read a series. Find a series ID in the URL on [alphacast.io](https://www.alphacast.io) when viewing an individual variable.
-</Info>
+A series is one time series taken from a dataset: one value column for a specific combination of entities. Use `alphacast.series(series_id)` with its numeric ID.
 
 ## Read metadata
 
 ```python
 meta = alphacast.series(12345).metadata()
-print(meta)
+
+print(meta["datasetId"], meta["frequency"])
+print(meta["metadata"]["name"], meta["metadata"]["entities"])
 ```
 
-Returns a dict describing the series — its name, dataset ID, units, frequency, and other metadata fields exposed by the REST API.
+The result includes `id`, `datasetId`, `frequency`, and a `metadata` object with `name`, `columnId`, and `entities`.
 
-## Download the data
+<span id="download-the-data" style={{ scrollMarginTop: "8rem" }} />
 
-Like datasets, series support the same five output formats:
+<span id="method-signature" style={{ scrollMarginTop: "8rem" }} />
+
+## Download data
 
 ```python
-# pandas
-df = alphacast.series(12345).download_data(format="pandas")
+series = alphacast.series(12345)
 
-# csv bytes
-csv_bytes = alphacast.series(12345).download_data("csv")
+df = series.download_data(format="pandas")
+csv_bytes = series.download_data("csv")
+xlsx_bytes = series.download_data("xlsx")
+tsv_bytes = series.download_data("tsv")
 
-# json (list of dicts)
-rows = alphacast.series(12345).download_data(format="json")
-
-# xlsx / tsv bytes
-xlsx_bytes = alphacast.series(12345).download_data("xlsx")
-tsv_bytes = alphacast.series(12345).download_data("tsv")
+# JSON: a list with one object that has "schema" and "data"
+rows = series.download_data("json")[0]["data"]
 ```
 
-When `format="pandas"`, the SDK fetches CSV under the hood and returns a parsed `DataFrame`. When `format="json"`, the SDK parses newline-delimited JSON and returns a list of dicts.
+<ParamField path="format" type="str" default="csv">`csv`, `json`, `xlsx`, `tsv`, or `pandas`.</ParamField>
 
-<Note>
-  The Series download endpoint does not currently expose date-range or column filters. If you need filtered reads, fetch from the parent dataset with [`download_data`](/python-sdk/downloading) instead.
-</Note>
+[Plan access](/api/datasets/data#plan-access-to-data) also applies to series. You can get a preview, or a table with an `error` column, instead of the full data.
 
-## Method signature
+<span id="when-to-use-series-vs-datasets" style={{ scrollMarginTop: "8rem" }} />
 
-```python
-class Series:
-    def metadata(self) -> dict: ...
-    def download_data(self, format: str = "csv"): ...
-```
-
-<ParamField path="format" type="str" default='"csv"'>
-  One of `"csv"`, `"json"`, `"xlsx"`, `"tsv"`, or `"pandas"`. The first four return raw bytes (or list of dicts for JSON); `"pandas"` returns a DataFrame.
-</ParamField>
-
-## When to use series vs datasets
-
-- **Series** — ideal when you only need a single variable, and you already know its series ID. Lighter payload, single-column DataFrame.
-- **Dataset** — ideal when you need multiple variables together, want to filter by entity or date, or want to manage uploads. Use [`download_data`](/python-sdk/downloading) on the dataset handle.
+The series method has no date or column filters. For filtered reads, use [`download_data`](/python-sdk/downloading) on the parent dataset.
 
 ## Next steps
 
-- Find dataset and series content with [Search](/python-sdk/search).
-- Combine multiple variables in a single download via [Downloading data](/python-sdk/downloading).
+<CardGroup cols={2}>
+  <Card title="Downloading data" icon="download" href="/python-sdk/downloading">
+    Download datasets with filters.
+  </Card>
+  <Card title="Search" icon="magnifying-glass" href="/python-sdk/search">
+    Find datasets.
+  </Card>
+</CardGroup>

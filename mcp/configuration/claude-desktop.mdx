@@ -25,7 +25,7 @@ This is the simplest path: no JSON file to edit, no Node.js, no API key.
     The **OAuth Client ID / Secret** fields under **Advanced settings** are optional — leave them empty. Click **Add**.
   </Step>
   <Step title="Connect and sign in">
-    The Alphacast connector opens showing *"You are not connected to Alphacast yet"* → click **Connect**. Claude opens your browser to sign in with your Alphacast account and authorize the `mcp:read` / `mcp:write` scopes. Once authorized, the connector shows the 32 tools.
+    The Alphacast connector opens showing *"You are not connected to Alphacast yet"* → click **Connect**. Claude opens your browser to sign in with your Alphacast account and authorize the `mcp:read` / `mcp:write` scopes. Once authorized, the connector lists the Alphacast tools (35, or 26 if your Workspace has catalog exploration turned off).
   </Step>
   <Step title="Verify in a new chat">
     Open a new chat, confirm the **Alphacast** tools appear in the tools menu, and send *"List my Alphacast repositories."* — you should see a `list_repositories` tool call.
@@ -50,7 +50,7 @@ Claude Desktop launches the server as a local process defined in `claude_desktop
 
 <Steps>
   <Step title="Get your API key">
-    Sign in to Alphacast and open [Settings](https://www.alphacast.io/settings). Copy your API key. If you belong to multiple teams, make sure your active team subscription is selected first — the key inherits that team's permissions.
+    Sign in to Alphacast and open [Settings](https://www.alphacast.io/settings). Copy your API key. A key belongs to one Workspace, so select the Workspace you want to use first.
   </Step>
 
   <Step title="Open the config file">
@@ -125,7 +125,7 @@ Claude Desktop launches the server as a local process defined in `claude_desktop
       The "running" badge next to the server in **Settings → Developer** is **not** proof that the server works. It can show "running" even when the server failed to start or authenticate. Always verify in the chat itself.
     </Warning>
 
-    1. Open a **new chat** and click the tools menu (the slider icon). You should see the **alphacast** server listed with its 32 tools enabled.
+    1. Open a **new chat** and click the tools menu (the slider icon). You should see the **alphacast** server listed with its tools enabled.
     2. Send a test prompt:
 
        > "List my Alphacast repositories."
@@ -136,8 +136,8 @@ Claude Desktop launches the server as a local process defined in `claude_desktop
 
     | Log message | Cause | Fix |
     |---|---|---|
-    | `npx` not found / spawn error | Node.js missing or not on PATH | [Install Node.js](/mcp/troubleshooting#no-admin-rights-to-install-nodejs-windows) or use the [full path to `npx.cmd`](/mcp/troubleshooting#client-says-mcp-server-failed-to-start-or-shows-a-red-status) |
-    | `401 Unauthorized` | Invalid or missing API key | [Authentication errors](/mcp/troubleshooting#401-unauthorized-on-every-tool-call) |
+    | `npx` not found / spawn error | Node.js missing or not on PATH | [Install Node.js](/mcp/troubleshooting#no-admin-rights-to-install-nodejs-windows) or use the [full path to `npx.cmd`](/mcp/troubleshooting#local-server-does-not-start) |
+    | `ALPHACAST_API_KEY environment variable is required` or `Unable to load Workspace configuration` | Missing or invalid API key, or the server cannot reach Alphacast | [Local server does not start](/mcp/troubleshooting#local-server-does-not-start) |
     | JSON parse error / server missing entirely | Malformed config file | [Fix the config JSON](/mcp/troubleshooting#the-config-json-is-invalid-server-disappears-or-never-loads) |
   </Step>
 </Steps>

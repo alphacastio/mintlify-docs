@@ -9,6 +9,12 @@
     "dark": "#2a1d61"
   },
   "navbar": {
+    "links": [
+      {
+        "label": "Pricing",
+        "href": "https://www.alphacast.io/pricing"
+      }
+    ],
     "primary": {
       "type": "github",
       "href": "https://github.com/alphacastio/mintlify-docs"
@@ -17,123 +23,226 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Using Alphacast",
         "groups": [
           {
-            "group": "Get Started",
+            "group": "Get started",
             "pages": [
               "introduction",
-              "quickstart",
-              "authentication"
+              "getting-started",
+              "getting-started/navigation"
             ]
           },
           {
-            "group": "Core Concepts",
+            "group": "Find data",
+            "pages": [
+              "explore",
+              "concepts/datasets",
+              "explore/api-explorer",
+              "clips"
+            ]
+          },
+          {
+            "group": "Ask",
+            "pages": [
+              "ai",
+              "ai/views",
+              "ai/agents"
+            ]
+          },
+          {
+            "group": "Keep and share",
             "pages": [
               "concepts/repositories",
-              "concepts/datasets",
-              "concepts/data-providers"
+              "sharing",
+              "charts",
+              "dashboards",
+              "notifications"
             ]
           },
           {
-            "group": "Uploading Data",
+            "group": "Your own data",
             "pages": [
-              "uploading/overview",
-              "uploading/manifest",
-              "uploading/validation"
+              "your-data/datasets",
+              "your-data/files",
+              "your-data/sync"
             ]
           },
           {
-            "group": "Data Providers",
+            "group": "Account",
             "pages": [
-              "providers/overview"
-            ]
-          },
-          {
-            "group": "Pipeline Steps",
-            "pages": [
-              "steps/overview",
-              {
-                "group": "Import data",
-                "pages": [
-                  "steps/fetch-dataset",
-                  "steps/fetch-fred",
-                  "steps/fetch-yahoo",
-                  "steps/fetch-series",
-                  "steps/fetch-api-provider"
-                ]
-              },
-              {
-                "group": "Filter and select",
-                "pages": [
-                  "steps/select-columns",
-                  "steps/filter-entity",
-                  "steps/filter-dates",
-                  "steps/filter-rows",
-                  "steps/sort-rows",
-                  "steps/select-series"
-                ]
-              },
-              {
-                "group": "Reshape",
-                "pages": [
-                  "steps/reorder-columns",
-                  "steps/rename-columns",
-                  "steps/regroup-entities",
-                  "steps/resample",
-                  "steps/merge",
-                  "steps/append-dataset",
-                  "steps/unstack-dataset",
-                  "steps/melt-dataset",
-                  "steps/rename-values",
-                  "steps/reorder-rows"
-                ]
-              },
-              {
-                "group": "Transform and analyze",
-                "pages": [
-                  "steps/transform",
-                  "steps/change-units",
-                  "steps/apply-formula",
-                  "steps/calculate-variable",
-                  "steps/formula-reference",
-                  "steps/arima-sa",
-                  "steps/country-validator",
-                  "steps/talib",
-                  "steps/portfolio-analysis"
-                ]
-              },
-              {
-                "group": "AI steps",
-                "pages": [
-                  "steps/ai-transform",
-                  "steps/ai-summary",
-                  "steps/ai-visualization"
-                ]
-              },
-              {
-                "group": "Outputs",
-                "pages": [
-                  "steps/publish",
-                  "steps/chart-data",
-                  "steps/table-view",
-                  "steps/deck-view",
-                  "steps/data-snapshot",
-                  "steps/markdown"
-                ]
-              }
+              "workspaces",
+              "settings"
             ]
           }
         ]
       },
       {
-        "tab": "API Reference",
+        "tab": "Connect",
         "groups": [
           {
-            "group": "Overview",
+            "group": "Start here",
             "pages": [
+              "connect"
+            ]
+          },
+          {
+            "group": "Apps and code",
+            "pages": [
+              "connect/assistants",
+              "connect/excel",
+              "connect/google-sheets",
+              "connect/python"
+            ]
+          },
+          {
+            "group": "MCP",
+            "pages": [
+              "mcp/overview",
+              "mcp/quickstart",
+              "mcp/authentication",
+              {
+                "group": "Configuration",
+                "pages": [
+                  "mcp/configuration/claude-desktop",
+                  "mcp/configuration/claude-code",
+                  "mcp/configuration/codex",
+                  "mcp/configuration/cursor",
+                  "mcp/configuration/other-clients"
+                ]
+              },
+              {
+                "group": "Tools",
+                "pages": [
+                  "mcp/tools/overview",
+                  "mcp/tools/search-and-datasets",
+                  "mcp/tools/providers",
+                  "mcp/tools/tickers",
+                  "mcp/tools/grapher",
+                  "mcp/tools/pipelines",
+                  "mcp/tools/workspace"
+                ]
+              },
+              {
+                "group": "Guides",
+                "pages": [
+                  "mcp/prompting",
+                  "mcp/examples",
+                  "mcp/troubleshooting"
+                ]
+              }
+            ]
+          },
+          {
+            "group": "Automate and publish",
+            "pages": [
+              "connect/webhooks",
+              "connect/embeds"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Pipelines",
+        "groups": [
+          {
+            "group": "Guides",
+            "pages": [
+              "steps/overview",
+              "pipelines/build-with-ai",
+              "pipelines/runs",
+              "pipelines/alerts"
+            ]
+          },
+          {
+            "group": "Import data",
+            "pages": [
+              "steps/fetch-dataset",
+              "steps/fetch-fred",
+              "steps/fetch-yahoo",
+              "steps/fetch-series",
+              "steps/fetch-api-provider"
+            ]
+          },
+          {
+            "group": "Filter and select",
+            "pages": [
+              "steps/select-columns",
+              "steps/filter-entity",
+              "steps/filter-dates",
+              "steps/filter-rows",
+              "steps/sort-rows",
+              "steps/select-series"
+            ]
+          },
+          {
+            "group": "Reshape",
+            "pages": [
+              "steps/reorder-columns",
+              "steps/rename-columns",
+              "steps/regroup-entities",
+              "steps/resample",
+              "steps/merge",
+              "steps/append-dataset",
+              "steps/unstack-dataset",
+              "steps/melt-dataset",
+              "steps/rename-values",
+              "steps/reorder-rows"
+            ]
+          },
+          {
+            "group": "Transform and analyze",
+            "pages": [
+              "steps/transform",
+              "steps/change-units",
+              "steps/apply-formula",
+              "steps/calculate-variable",
+              "steps/formula-reference",
+              "steps/arima-sa",
+              "steps/country-validator",
+              "steps/talib",
+              "steps/portfolio-analysis"
+            ]
+          },
+          {
+            "group": "AI steps",
+            "pages": [
+              "steps/ai-transform",
+              "steps/ai-summary",
+              "steps/ai-visualization"
+            ]
+          },
+          {
+            "group": "Outputs",
+            "pages": [
+              "steps/publish",
+              "steps/chart-data",
+              "steps/table-view",
+              "steps/deck-view",
+              "steps/data-snapshot",
+              "steps/notification"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": [
+              "quickstart",
+              "authentication",
               "api/overview",
               "api/errors"
+            ]
+          },
+          {
+            "group": "Uploading data",
+            "pages": [
+              "uploading/overview",
+              "uploading/manifest",
+              "uploading/validation"
             ]
           },
           {
@@ -160,8 +269,9 @@
             ]
           },
           {
-            "group": "Data Providers",
+            "group": "Data providers",
             "pages": [
+              "providers/overview",
               "api/providers/list",
               "api/providers/series"
             ]
@@ -203,49 +313,49 @@
             ]
           }
         ]
-      },
-      {
-        "tab": "MCP",
-        "groups": [
-          {
-            "group": "Get Started",
-            "pages": [
-              "mcp/overview",
-              "mcp/quickstart",
-              "mcp/authentication"
-            ]
-          },
-          {
-            "group": "Configuration",
-            "pages": [
-              "mcp/configuration/claude-desktop",
-              "mcp/configuration/claude-code",
-              "mcp/configuration/codex",
-              "mcp/configuration/cursor",
-              "mcp/configuration/other-clients"
-            ]
-          },
-          {
-            "group": "Tools",
-            "pages": [
-              "mcp/tools/overview",
-              "mcp/tools/search-and-datasets",
-              "mcp/tools/providers",
-              "mcp/tools/tickers",
-              "mcp/tools/grapher",
-              "mcp/tools/pipelines"
-            ]
-          },
-          {
-            "group": "Guides",
-            "pages": [
-              "mcp/prompting",
-              "mcp/examples",
-              "mcp/troubleshooting"
-            ]
-          }
-        ]
       }
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/concepts/data-providers",
+      "destination": "/providers/overview"
+    },
+    {
+      "source": "/concepts/pipelines",
+      "destination": "/steps/overview"
+    },
+    {
+      "source": "/pipelines/overview",
+      "destination": "/steps/overview"
+    },
+    {
+      "source": "/pipelines/running",
+      "destination": "/pipelines/runs"
+    },
+    {
+      "source": "/pipelines/step-types",
+      "destination": "/steps/overview"
+    },
+    {
+      "source": "/pipelines/ai-features",
+      "destination": "/steps/ai-transform"
+    },
+    {
+      "source": "/integrations/excel",
+      "destination": "/connect/excel"
+    },
+    {
+      "source": "/integrations/google-drive",
+      "destination": "/connect/google-sheets"
+    },
+    {
+      "source": "/steps/markdown",
+      "destination": "/steps/overview"
+    },
+    {
+      "source": "/plans",
+      "destination": "https://www.alphacast.io/pricing"
+    }
+  ]
 }

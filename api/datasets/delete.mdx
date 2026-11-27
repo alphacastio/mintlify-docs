@@ -1,37 +1,55 @@
 ---
-title: "DELETE /datasets/{id} — Delete a Dataset"
+title: "DELETE /datasets/{id} — Delete a dataset"
 sidebarTitle: "Delete a dataset"
-description: "Permanently delete a dataset and all its data. Requires Write permission on the dataset. Returns 204 No Content. This action cannot be undone."
+description: "Permanently delete a dataset, and handle the conflicts that can block the deletion."
 ---
 
-Deleting a dataset permanently removes it along with all uploaded data and column definitions. You must have `Write` permission on the dataset to perform this action. There is no confirmation step and no way to recover a deleted dataset, so proceed with care.
+```
+DELETE https://api.alphacast.io/datasets/{dataset_id}
+```
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-Authenticate using HTTP Basic Auth. Pass your API key as the username and leave the password empty. You must have `Write` permission on the target dataset.
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-## Request
+Requires [Basic Auth](/authentication) and `Write` permission on the dataset.
 
-**Method:** `DELETE`  
-**URL:** `https://api.alphacast.io/datasets/{dataset_id}`
+<Warning>
+  Deletion is permanent.
+</Warning>
 
-## Path parameters
+<span id="path-parameters" style={{ scrollMarginTop: "8rem" }} />
 
-<ParamField path="dataset_id" type="integer" required>
-  The numeric ID of the dataset to delete.
-</ParamField>
+## Parameters
+
+<ParamField path="dataset_id" type="integer" required>Dataset ID.</ParamField>
+<ParamField query="allowBreakingConsumers" type="string">Send `true` to delete a dataset that pipelines read. Those pipelines stop working.</ParamField>
 
 ## Response
 
-Returns `204 No Content` with an empty body on success.
+Returns `204` with an empty body.
+
+<span id="error-responses" style={{ scrollMarginTop: "8rem" }} />
+
+## Conflicts
+
+The API returns `409` with a `code` when the dataset is still in use.
+
+| `code` | What to do |
+|---|---|
+| `dataset_published_by_pipeline` | Remove the step that publishes to the dataset, or delete that pipeline. Then retry. |
+| `dataset_has_series` | You cannot delete this dataset. |
+| `dataset_has_consumers` | Review the pipelines that read it. To delete anyway, send `allowBreakingConsumers=true`. |
+| `dataset_has_dependencies` | Other content still uses the dataset. |
+
+A `403` means that you cannot write to the dataset, or that it does not exist for you.
 
 ## Example
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: \
-  -X DELETE https://api.alphacast.io/datasets/123
+curl -u YOUR_API_KEY: -X DELETE https://api.alphacast.io/datasets/123
 ```
 
 ```python Python
@@ -41,29 +59,32 @@ response = requests.delete(
     "https://api.alphacast.io/datasets/123",
     auth=("YOUR_API_KEY", ""),
 )
-assert response.status_code == 204
+response.raise_for_status()
 ```
 
 ```javascript Node.js
+const headers = { Authorization: "Basic " + btoa("YOUR_API_KEY:") };
+
 const response = await fetch("https://api.alphacast.io/datasets/123", {
   method: "DELETE",
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
+  headers,
 });
-// response.status === 204
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
+// Success is 204 with an empty body
 ```
 
 </RequestExample>
 
-A successful deletion produces no response body and returns HTTP `204`.
+<ResponseExample>
 
-## Error responses
+```json 409
+{
+  "message": "2 pipeline(s) use this dataset and will stop working if it is deleted. Confirm to delete it anyway.",
+  "code": "dataset_has_consumers",
+  "details": { "datasetId": 123, "consumersCount": 2 }
+}
+```
 
-| Status | Cause |
-|--------|-------|
-| `401 Unauthorized` | Missing or invalid API key. |
-| `403 Forbidden` | You do not have `Write` permission on this dataset. |
-| `404 Not Found` | No dataset with the given ID exists or is accessible to your account. |
-
-<Warning>
-  Deletion is permanent. All rows, column definitions, and metadata associated with this dataset are destroyed immediately. This action cannot be undone.
-</Warning>
+</ResponseExample>

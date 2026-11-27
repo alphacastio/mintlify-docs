@@ -1,64 +1,45 @@
 ---
-title: "GET /repositories — List All Repositories"
+title: "GET /repositories — List repositories"
 sidebarTitle: "List repositories"
-description: "Retrieve all repositories accessible to the authenticated user. Returns an array of repository objects with id, name, privacy, and permission fields."
+description: "List the repositories that you or your teams have permission on."
 ---
 
-The list repositories endpoint returns every repository your API key can access, including repositories you own and those shared with you by other team members. The `permission` field in each result tells you your effective access level for that repository.
+Returns the repositories that your own account or your teams have permission on. It does not list every public repository.
 
-## Request
-
-```bash
+```
 GET https://api.alphacast.io/repositories
 ```
 
-No query parameters or request body are required.
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-<Note>
-  This endpoint requires HTTP Basic Auth. Pass your API key as the username and leave the password empty.
-</Note>
+Requires [Basic Auth](/authentication).
 
-```bash
-curl -u YOUR_API_KEY: https://api.alphacast.io/repositories
-```
+## Query parameters
+
+<ParamField query="name" type="string">Return only repositories with this name. The match ignores case and accents. Returns up to 100 results. An empty value returns `400`.</ParamField>
 
 ## Response
 
-The endpoint returns a JSON array. Each element is a repository object.
+A JSON array, ordered by your permission level and then by ID.
 
-<ResponseField name="id" type="integer">
-  Unique numeric identifier for the repository.
-</ResponseField>
+<ResponseField name="id" type="integer">Repository ID.</ResponseField>
+<ResponseField name="name" type="string">Repository name.</ResponseField>
+<ResponseField name="accountId" type="integer">Account that owns the repository.</ResponseField>
+<ResponseField name="description" type="string">Description. Can be `null`.</ResponseField>
+<span id="param-team" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="name" type="string">
-  Display name of the repository.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional description of the repository's contents or purpose.
-</ResponseField>
-
-<ResponseField name="privacy" type="string">
-  Visibility setting. Either `"Public"` or `"Private"`.
-</ResponseField>
-
-<ResponseField name="team" type="string">
-  The team this repository belongs to, if applicable.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your access level for this repository. One of `"Owner"`, `"Admin"`, `"Write"`, `"Clone"`, or `"Read"`. This field is determined by the server based on your API key and cannot be set directly.
-</ResponseField>
+<ResponseField name="privacy" type="string">`Public` or `Private`.</ResponseField>
+<ResponseField name="slug" type="string">URL-friendly identifier.</ResponseField>
+<ResponseField name="permission" type="string">Your highest permission: `Owner`, `Admin`, `Write`, `Clone`, or `Read`.</ResponseField>
 
 ## Example
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: \
-  https://api.alphacast.io/repositories
+curl -u YOUR_API_KEY: https://api.alphacast.io/repositories
 ```
 
 ```python Python
@@ -66,16 +47,10 @@ import requests
 
 response = requests.get(
     "https://api.alphacast.io/repositories",
+    params={"name": "Emerging Markets Macro"},  # optional
     auth=("YOUR_API_KEY", ""),
 )
 repositories = response.json()
-```
-
-```javascript Node.js
-const response = await fetch("https://api.alphacast.io/repositories", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
-const repositories = await response.json();
 ```
 
 </RequestExample>
@@ -87,18 +62,11 @@ const repositories = await response.json();
   {
     "id": 101,
     "name": "Emerging Markets Macro",
-    "description": "GDP, inflation, and rates for EM economies",
+    "accountId": 12,
+    "description": "GDP, inflation, and rates",
     "privacy": "Private",
-    "team": "research",
+    "slug": "emerging-markets-macro-101",
     "permission": "Owner"
-  },
-  {
-    "id": 204,
-    "name": "Global Equity Indices",
-    "description": null,
-    "privacy": "Public",
-    "team": null,
-    "permission": "Read"
   }
 ]
 ```

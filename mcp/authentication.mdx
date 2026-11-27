@@ -24,14 +24,21 @@ The server requests these scopes:
 | Scope | Grants |
 |---|---|
 | `openid`, `profile`, `email` | Identifies your Alphacast account. |
-| `mcp:read` | The 28 read-only tools (search, download, providers, tickers, grapher). |
-| `mcp:write` | The 4 pipeline write tools (`create_pipeline`, `add_pipeline_step`, `edit_pipeline_step`, `delete_pipeline_step`). |
+| `mcp:read` | Read access: search, datasets, Workspace methodologies, providers, tickers, charts and pipeline inspection. |
+| `mcp:write` | Required by 6 tools: `create_pipeline`, `add_pipeline_step`, `edit_pipeline_step`, `delete_pipeline_step`, `get_step_preview` and `get_step_data`. `get_step_data` needs both scopes. |
 
-No API key is involved in this path — nothing to paste into a config file and nothing to rotate. To revoke access, sign out / remove the connector in your client, or revoke the session from your Alphacast account.
+On this path you don't paste an API key into a configuration file. The server resolves your Alphacast API key for the selected Workspace on the server side. To disconnect, sign out or remove the connector in your client.
 
 <Note>
-  Most clients that support remote MCP servers (Claude Code, Claude Desktop, Cursor, VS Code) handle this OAuth flow for you. Clients that only support local stdio servers can reach the hosted server through the `mcp-remote` bridge, which performs the same browser login — see [Other clients](/mcp/configuration/other-clients).
+  Most clients that support remote MCP servers handle this OAuth flow for you. Clients that only support local stdio servers can reach the hosted server through the `mcp-remote` bridge, which performs the same browser login. See [Other clients](/mcp/configuration/other-clients).
 </Note>
+
+## Which Workspace the connection uses
+
+- **Hosted:** the connection follows the Workspace you have selected in Alphacast. After you switch Workspaces, the change reaches the MCP server shortly afterwards. An open session then returns `workspace_context_changed`, and your client has to start a new MCP session. See [Troubleshooting](/mcp/troubleshooting#workspace_context_changed).
+- **Local:** the connection uses the Workspace that your API key belongs to. To use another Workspace, configure that Workspace's key and restart the server.
+
+Call [`get_current_workspace`](/mcp/tools/workspace#get_current_workspace) to check which Workspace you are in. After a change, load Workspace methodologies again. See [Workspaces](/workspaces).
 
 ## API key (local server)
 
@@ -49,7 +56,7 @@ The server reads your API key from the `ALPHACAST_API_KEY` environment variable 
 }
 ```
 
-The server uses this key internally when calling the Alphacast REST API on your behalf.
+The server checks the key when it starts. If the key is missing or invalid, the server stops with an error. It then uses the key to call Alphacast on your behalf. Local connections have access to both read and write tools, limited by your plan and repository permissions.
 
 <Note>
   The key is **the same raw API key** you use for the REST API (where it goes as the HTTP Basic Auth username). Both authenticate as the same Alphacast account.
@@ -57,22 +64,33 @@ The server uses this key internally when calling the Alphacast REST API on your 
 
 ## Permissions
 
-The MCP server inherits whatever permissions the API key has on the underlying account:
+The MCP server works with the permissions of your user in the selected Workspace:
 
 | Account permission | What MCP can do |
 |---|---|
 | Read on a repository | List, search, and download datasets in that repository. |
-| Write on a repository | All Read operations. (Dataset and repository creation are intentionally not exposed via MCP.) |
-| Owner / Admin on a repository | Same as Write. Repository and dataset deletion are intentionally not exposed. |
+| Write on a repository | All Read operations, plus creating and editing pipelines (on a plan that can create content). A publish step can create or update datasets. |
+| Owner / Admin on a repository | Same as Write. There are no tools to delete repositories, datasets or whole pipelines. |
 
 If a tool call returns `403 Forbidden`, the API key does not have the required permission on the target repository. Generate a new key under an account with the right access, or have the repository owner grant you write access.
 
 ## Where to manage your key
 
-- View, create, and revoke keys: [alphacast.io/settings](https://www.alphacast.io/settings).
+- View and rotate your key: [alphacast.io/settings](https://www.alphacast.io/settings).
 - Reference for the same key in the REST API: [Authentication](/authentication).
 - Rotate immediately if a key was exposed; rotation invalidates the previous value.
 
-## What the server does *not* see
+<span id="what-the-server-does-not-see" style={{ scrollMarginTop: "8rem" }} />
 
-The server does not store the conversation history of your MCP client, the prompts you wrote, or the responses the model generated. Tool inputs and outputs travel only between your client, the Alphacast MCP server, and the Alphacast REST API. On the local path the server runs entirely on your machine and only ever sees the API key from the environment variable; on the hosted path it sees only the OAuth token your client presents.
+## What Alphacast records about tool calls
+
+Both the hosted and the local server send Alphacast a record of each tool call. A record can include:
+
+- The tool name, duration and outcome (success or error). For protocol or transport errors, it also includes the error code and message.
+- The MCP client name and version, an MCP session identifier, and a conversation identifier if your client sends one.
+- A copy of the call request in which text values are replaced by `[REDACTED]`. Pipeline `configuration` objects and fields whose names look like credentials are replaced entirely. Tool and field names, numbers and true/false values, such as dataset IDs or row limits, remain. Very large requests are left out.
+- Your user and account, identified from the API key used to send the record.
+
+Tool results and the model's answers are not part of these records. The MCP server receives the tool calls your client makes, including their arguments, not your client's full conversation.
+
+Separately from these records, Alphacast processes your requests to run the tools. For example, dataset reads can count toward your plan's download usage, and pipelines you create are saved in your repository. Your AI client handles tool results under its own terms.

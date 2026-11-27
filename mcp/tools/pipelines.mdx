@@ -1,48 +1,60 @@
 ---
 title: "Pipeline Tools"
 sidebarTitle: "Pipelines"
-description: "Build, inspect, edit, and run Alphacast pipelines from natural-language prompts. Thirteen MCP tools for the full pipeline lifecycle — nine read-only, four write — with auto-validation and auto-run after every mutation."
+description: "Thirteen MCP tools to inspect, build and edit Alphacast pipelines, preview step output and follow runs."
 ---
 
-Thirteen tools for working with Alphacast pipelines from an MCP client. Nine are read-only (inspect definitions, fetch runs, preview step output, discover step types and formulas); four are write (create a pipeline, add/edit/remove steps). After every write the server auto-validates and auto-runs the pipeline, then waits for the editor run to finish so the response carries the new state.
+Thirteen tools for working with Alphacast pipelines from an MCP client. Seven only read. Six need write access: the four tools that change pipelines, plus `get_step_preview` and `get_step_data`, which can start runs.
+
+Alphacast validates and runs a pipeline after each saved change. The tools don't wait for that run unless you ask them to. Use [`wait_pipeline_run`](#wait_pipeline_run) to check the result.
+
+<Warning>
+  A pipeline run can fetch external data and run output steps, such as publishing to a dataset.
+</Warning>
+
+Creating pipelines requires a [plan](https://www.alphacast.io/pricing) that can create content. You also need Write access to the repository. For what each step does, see [Pipeline steps](/steps/overview).
 
 <Tip>
-  When `repositoryId` is omitted from `create_pipeline` or `list_pipelines`, the server resolves the workspace's **default repository** automatically. You don't need to call `list_repositories` first unless the pipeline belongs somewhere else.
+  When `repositoryId` is omitted from `create_pipeline` or `list_pipelines`, the server uses your default writable repository. Call `list_repositories` only when the pipeline belongs somewhere else.
 </Tip>
 
 ## `list_pipelines`
 
-List pipelines in a repository.
+List one page of pipelines in a repository.
 
 <ParamField body="repositoryId" type="number">
-  Repository ID. **Optional** — when omitted, the MCP server resolves and uses the workspace's default writable repository. The tool returns only pipelines that belong to the resolved repository.
+  Repository ID. Omit to use your default writable repository.
 </ParamField>
 
-Returns one row per pipeline with `id`, `name`, and `repositoryId`.
+<ParamField body="limit" type="number" default="50">
+  Pipelines per page, from 1 to 100.
+</ParamField>
+
+<ParamField body="afterId" type="number">
+  Pagination cursor. Pass the `nextAfterId` from the previous page.
+</ParamField>
+
+Returns each pipeline's ID, name, repository ID and URL, plus `hasMore` and `nextAfterId`. When `hasMore` is `true`, the list is not complete.
 
 **Example prompt**
 
-> "List the pipelines in my default repository."
-
-**Underlying endpoint:** `GET /pipelines?repositoryId={id}`.
+> "List all the pipelines in my default repository."
 
 ---
 
 ## `get_pipeline`
 
-Get the full definition of a pipeline: name, repository, every step in order with its type and configuration, validation errors, and a deep link to each step in the editor. Also returns a summary of the last run if one exists.
+Get a pipeline with its steps: type, order, configuration summary, output columns, validation status and a link to each step in the editor. It also summarizes the last finished run, including its run ID.
 
-<ParamField body="pipelineId" type="number" required>
-  Numeric pipeline ID.
+<ParamField body="pipelineId" type="number | string" required>
+  Numeric pipeline ID, pipeline slug, or full Alphacast pipeline URL.
 </ParamField>
 
-Validation errors that depend on a fresh run are marked `PENDING RUN` instead of `ERROR`, so the response distinguishes "step is broken" from "step needs the upstream to materialize first."
+Some validation errors depend on a run. They are marked `PENDING RUN` instead of `ERROR`. Validation does not tell you how an active run will end.
 
 **Example prompt**
 
-> "Show me pipeline 4821 — what does each step do and is anything broken?"
-
-**Underlying endpoint:** `GET /pipelines/{id}` (plus the last run, fetched in parallel).
+> "Show me pipeline 4821. What does each step do, and is anything broken?"
 
 ---
 
@@ -62,13 +74,11 @@ Get a specific run by ID, including status, timestamps, and per-step logs.
 
 > "What happened in run 91722 of pipeline 4821? Did step 3 fail?"
 
-**Underlying endpoint:** `GET /pipelines/{id}/runs/{runId}`.
-
 ---
 
 ## `wait_pipeline_run`
 
-Block until a specific run reaches a terminal state (`completed`, `failed`, `cancelled`, or `skipped`) and return its status and logs. Useful when you just triggered a run via the web UI or another tool and want to poll exactly that run instead of guessing which is the latest.
+Block until a specific run reaches a terminal state (`completed`, `failed`, `cancelled`, or `skipped`) and return its status and logs. Use the run ID returned by `create_pipeline`, `add_pipeline_step` or `edit_pipeline_step`.
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
@@ -79,20 +89,24 @@ Block until a specific run reaches a terminal state (`completed`, `failed`, `can
 </ParamField>
 
 <ParamField body="timeoutSeconds" type="number" default="60">
-  Maximum seconds to poll before returning `timeout`. The tool polls every 2 seconds.
+  Maximum seconds to wait before returning `timeout`.
 </ParamField>
+
+A `timeout` does not mean the run failed: its outcome is still unknown. Wait again on the same run ID. Don't start another run.
 
 **Example prompt**
 
 > "Wait up to 2 minutes for run 91722 to finish and tell me how it ended."
 
-**Underlying endpoints:** `GET /pipelines/{id}/runs/{runId}/status` (polled) and `GET /pipelines/{id}/runs/{runId}/logs` (fetched once terminal).
-
 ---
 
 ## `get_step_data`
 
-Fetch the cached output of a single pipeline step directly, without triggering a new run. Returns the materialized data of the most recent successful run.
+Read the last computed output of a step. Needs both `mcp:read` and `mcp:write`.
+
+<Warning>
+  This tool can start a run. For a Data Snapshot step in a pipeline that uses `fetch-yahoo` or `fetch-fred`, Alphacast can start a full pipeline run if the last run is more than 20 minutes old. That run can fetch external data and run publish steps. The tool does not wait for it, so the data returned may not include the refresh.
+</Warning>
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
@@ -103,52 +117,60 @@ Fetch the cached output of a single pipeline step directly, without triggering a
 </ParamField>
 
 <ParamField body="format" type="string" default="csv">
-  `csv` for tabular text (default) or `json` for structured data.
+  `csv` or `json`.
+</ParamField>
+
+<ParamField body="limit" type="number">
+  Return the last N rows, from 1 to 5000. The hosted server defaults to 100. A limited CSV read only works if the complete cached file is within 4 MiB.
+</ParamField>
+
+<ParamField body="outputMode" type="string" default="auto">
+  Hosted: `auto` or `inline`, both return limited rows. Local without `limit`: `auto` returns small outputs in the response and saves large ones to a temporary file, `inline` can cut off long output, and `file` saves the full output.
+</ParamField>
+
+<ParamField body="maxInlineChars" type="number" default="50000">
+  Character budget for the response, from 1000 to 500000.
 </ParamField>
 
 **Example prompt**
 
 > "Get the CSV output of step 11 in pipeline 4821."
 
-**Underlying endpoint:** `GET /pipelines/{id}/steps/{stepId}/data`.
-
 ---
 
 ## `get_step_preview`
 
-Run a fresh **editor preview** materialization for a step, poll the run to completion, and return the preview rows as CSV. Use this when you want the output of a step *right now* — for example after editing its configuration — rather than reading whatever was cached last.
+Run a preview up to a step and return its output as CSV. Use it to check data while you debug, for example right after editing a step. Needs `mcp:write`.
+
+The tool cancels runs of the pipeline that are processing, starts a preview run and waits up to about 60 seconds. The run can fetch external data. It may also run earlier steps again, including output steps.
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
 </ParamField>
 
 <ParamField body="stepOrder" type="number" required>
-  0-based order of the step to preview. The pipeline runs up to and including this step.
+  0-based order of the step to preview.
 </ParamField>
 
 <ParamField body="top" type="number" default="100">
-  Maximum number of preview rows to return. Output is truncated at ~10 000 characters regardless of `top`.
+  Maximum number of preview rows. The response is also cut off at 10,000 characters.
 </ParamField>
 
 **Example prompt**
 
-> "Preview the data after step 2 in pipeline 4821 — first 50 rows."
-
-**Underlying endpoints:** `POST /pipelines/{id}/steps/{stepId}/editor-preview-data` (triggers the run) and `GET /pipelines/{id}/steps/{stepId}/editor-preview-data` (fetches the materialized rows once the run completes).
+> "Preview the data after step 2 in pipeline 4821, first 50 rows."
 
 ---
 
 ## `list_pipeline_step_types`
 
-Lists all available pipeline step types grouped by category (data fetch, data shaping, filtering, transformation, AI, analysis, output/views, validation). Use this to discover what types are available before calling `add_pipeline_step` or `create_pipeline`.
+Lists the public pipeline step types and their groups. Use this to discover what types are available before calling `add_pipeline_step` or `create_pipeline`.
 
 No input parameters. Returns a structured list of step type groups, each containing type IDs, labels, and descriptions.
 
 **Example prompt**
 
 > "What pipeline step types are available in Alphacast?"
-
-**Underlying endpoint:** `GET /api/pipelines/assistant/reference?section=step-types`.
 
 ---
 
@@ -163,8 +185,6 @@ Returns the configuration schema, validation rules, and AI-facing authoring exam
 **Example prompt**
 
 > "What configuration fields does the `merge` step type accept?"
-
-**Underlying endpoint:** `GET /api/pipelines/assistant/reference?stepType={type}`.
 
 ---
 
@@ -182,31 +202,29 @@ No input parameters.
 
 > "What formula syntax can I use in a calculate-variable step?"
 
-**Underlying endpoint:** `GET /api/pipelines/assistant/reference?section=formula`.
-
 ---
 
 ## `create_pipeline`
 
-Create a new pipeline, optionally with initial steps. When `steps` are provided, the server validates and runs the pipeline before returning, so the response includes the run status and any validation errors.
+Create a new pipeline, optionally with initial steps. When you include steps, Alphacast starts a run. The tool returns before the run finishes, with the run ID and any validation information. Check the result with `wait_pipeline_run`. Don't create the pipeline again to check progress.
 
 <ParamField body="name" type="string" required>
   Pipeline name.
 </ParamField>
 
 <ParamField body="repositoryId" type="number">
-  Target repository. **Optional** — when omitted, the MCP server resolves and uses the workspace's default writable repository automatically.
+  Target repository. Omit to use your default writable repository.
 </ParamField>
 
 <ParamField body="steps" type="object[]">
   Optional initial steps. Each entry has `type`, `order` (0-based), and `configuration` (a step-specific object).
 
-  Common step types and their configuration are documented in the tool's input schema. Highlights:
+  Call `get_pipeline_step_config` for the exact configuration of each type. Examples:
 
   - `fetch-dataset { datasetId }`
   - `fetch-yahoo { tickers, period }` — use [`search_tickers`](/mcp/tools/tickers#search_tickers) to discover symbols first
   - `fetch-fred { series }`
-  - `merge { datasetId, how }`
+  - `merge { datasetId, how }` (see [Common patterns](#common-patterns) to merge two branches)
   - `transform { transformation, columns }` — built-in transformations with auto-fetched auxiliary data (USD conversion, constant prices, per capita, seasonal adjustment)
   - `ai-transform { code }` — Python with `def run(df): return df, 'log'`
   - `publish { datasetId }` or `publish { datasetName }`
@@ -216,24 +234,22 @@ Create a new pipeline, optionally with initial steps. When `steps` are provided,
 
 > "Create a pipeline named 'US inflation YoY' that fetches FRED CPIAUCSL and applies a `pc1` transformation."
 
-**Underlying endpoint:** `POST /pipelines`.
-
 <Warning>
-  Writes are **not** reversible from MCP. Deleting a pipeline requires the Alphacast web UI — the agent surface does not expose `DELETE /pipelines/{id}`.
+  There is no MCP tool to undo a change or delete a pipeline. Use the pipeline editor. See [Run a pipeline](/pipelines/runs#undo-the-last-change).
 </Warning>
 
 ---
 
 ## `add_pipeline_step`
 
-Append or insert a step into an existing pipeline. Auto-validates and auto-runs after the change.
+Add a step to an existing pipeline. Alphacast saves, validates and runs the pipeline. By default the tool returns as soon as the change is saved, with the editor run ID.
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
 </ParamField>
 
 <ParamField body="type" type="string" required>
-  Step type. The tool's input schema enumerates every supported step type with its required configuration shape (`fetch-yahoo`, `fetch-fred`, `merge`, `transform`, `ai-transform`, `publish`, etc.).
+  Step type. See `list_pipeline_step_types` and `get_pipeline_step_config`.
 </ParamField>
 
 <ParamField body="order" type="number" required>
@@ -241,20 +257,26 @@ Append or insert a step into an existing pipeline. Auto-validates and auto-runs 
 </ParamField>
 
 <ParamField body="configuration" type="object" required>
-  Step-specific configuration. For `calculate-variable`, reference columns as `#'Column Name'` in raw MCP/API formulas — not the `@Column` shorthand used in the visual editor.
+  Step-specific configuration. For `calculate-variable`, reference columns as `#'Column Name'`, not the `@Column` shorthand used in the editor. For an `ai-transform` with named inputs, `inputs: [{ alias, stepId }]` must use the IDs of earlier steps.
+</ParamField>
+
+<ParamField body="waitForRun" type="boolean" default="false">
+  When `true`, wait for the run to finish before returning.
+</ParamField>
+
+<ParamField body="timeoutSeconds" type="number" default="60">
+  Maximum seconds to wait when `waitForRun` is `true`.
 </ParamField>
 
 **Example prompt**
 
-> "Append an `ai-transform` step to pipeline 4821 that computes a 12-month rolling average of the `Value` column."
-
-**Underlying endpoint:** `POST /pipelines/{id}/steps`.
+> "Add an `ai-transform` step to pipeline 4821 that computes a 12-month rolling average of the `Value` column. Wait for the run and tell me how it ended."
 
 ---
 
 ## `edit_pipeline_step`
 
-Replace the full configuration of an existing step. Auto-validates and auto-runs after the change. The new configuration replaces the old one entirely — partial updates are not supported.
+Update an existing step. Alphacast saves, validates and runs the pipeline. By default the tool returns as soon as the change is saved, with the editor run ID. Send the full configuration. `chart-data` is the exception: your changes, including partial `grapher` patches, are merged with the existing configuration. Keep its `chartId`.
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
@@ -276,17 +298,23 @@ Replace the full configuration of an existing step. Auto-validates and auto-runs
   Full updated configuration for the step.
 </ParamField>
 
+<ParamField body="waitForRun" type="boolean" default="false">
+  When `true`, wait for the run to finish before returning.
+</ParamField>
+
+<ParamField body="timeoutSeconds" type="number" default="60">
+  Maximum seconds to wait when `waitForRun` is `true`.
+</ParamField>
+
 **Example prompt**
 
 > "Change step 11 in pipeline 4821 to filter dates from 2010-01-01 onwards."
-
-**Underlying endpoint:** `PUT /pipelines/{id}/steps/{stepId}`.
 
 ---
 
 ## `delete_pipeline_step`
 
-Remove a step from a pipeline. The remaining steps keep their order numbers — you may want to reorder them with `edit_pipeline_step` afterwards. Auto-validates and auto-runs after the change.
+Remove a step from a pipeline. Alphacast validates and runs the remaining steps. Call `get_pipeline` afterwards to check step order and status.
 
 <ParamField body="pipelineId" type="number" required>
   Pipeline ID.
@@ -299,8 +327,6 @@ Remove a step from a pipeline. The remaining steps keep their order numbers — 
 **Example prompt**
 
 > "Remove step 14 from pipeline 4821."
-
-**Underlying endpoint:** `DELETE /pipelines/{id}/steps/{stepId}`.
 
 ---
 

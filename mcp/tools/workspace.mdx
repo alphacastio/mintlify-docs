@@ -1,0 +1,97 @@
+---
+title: "Workspace Tools"
+sidebarTitle: "Workspace"
+description: "Check which Workspace your MCP connection uses, and load the analytical methodologies of its agents into your own assistant."
+---
+
+Three read-only tools connect your assistant to your Alphacast Workspace. They show which Workspace you are in and let your assistant use the methodology that an [agent](/ai/agents) in that Workspace defines.
+
+For questions about your Workspace's data, the server asks the assistant to follow this order:
+
+1. Call `list_agent_prompts`.
+2. Load a relevant methodology with `get_agent_prompt`.
+3. Use the sources it indicates to answer your question.
+
+If no methodology matches, the assistant searches the data you can access. All three tools need the `mcp:read` scope.
+
+## `get_current_workspace`
+
+Show the Workspace that this connection uses.
+
+No input parameters. The result includes `accountId`, `name`, your `relationship` to the Workspace, and `allowExploreCatalogs`. When `allowExploreCatalogs` is `false`, the catalog, provider and ticker tools are [not available](/mcp/tools/overview#tool-availability).
+
+A hosted connection follows the Workspace you have selected in Alphacast. A switch takes a short time to reach the connection. A local connection uses the Workspace of its API key.
+
+**Example prompt**
+
+> "Which Alphacast Workspace am I connected to?"
+
+## `list_agent_prompts`
+
+List the agent methodologies available in the current Workspace.
+
+No input parameters. For each one, the result gives:
+
+| Field | Description |
+|---|---|
+| `name` | Stable identifier, such as `agent_59`. Use it with `get_agent_prompt`. |
+| `title` | The agent's current display name. |
+| `description` | What the agent is for. |
+
+An agent appears in the list when all of these are true:
+
+- It is enabled and has instructions.
+- It belongs to a repository owned by the current Workspace, and you can read that repository.
+- You use your personal Workspace, or you are a member of the team Workspace. Guest access alone is not enough.
+- It is not set up to act as another user.
+
+An empty list means no methodology is available to you. It does not mean the Workspace has no data.
+
+**Example prompt**
+
+> "What analytical methodologies does my Workspace have?"
+
+## `get_agent_prompt`
+
+Load one methodology.
+
+<ParamField body="name" type="string" required>
+  Exact name returned by `list_agent_prompts`, for example `agent_59`.
+</ParamField>
+
+The result includes:
+
+| Field | Description |
+|---|---|
+| `name`, `title`, `description` | Identify the agent. |
+| `instructions` | The agent's methodology. |
+| `language` | The agent's language setting. |
+| `dataScope` | The datasets and repositories the methodology is designed to use. |
+| `usage`, `toolMapping`, `coverage` | Notes that tell your assistant how to apply the methodology with MCP tools, and how to treat incomplete data. |
+
+Access is checked again on every call.
+
+<Note>
+  This tool only retrieves guidance. It does not run the agent or query any data, and it does not give you more data access. Your own permissions and [plan](https://www.alphacast.io/pricing) still apply. The agent's data scope describes its method. It does not limit other tools in your assistant.
+</Note>
+
+Instructions written for the Alphacast app can mention tools that exist only there. Your assistant uses the MCP tools it has to query the same sources.
+
+**Example prompt**
+
+> "Use my Workspace's inflation methodology to analyze the latest data."
+
+## After you switch Workspaces
+
+Methodologies belong to a Workspace. After a switch, your assistant should call `list_agent_prompts` again and stop using the previous Workspace's instructions. On the hosted server, an open session returns [`workspace_context_changed`](/mcp/troubleshooting#workspace_context_changed) and your client starts a new one.
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Agents" icon="users" href="/ai/agents">
+    Create and configure the agents of your Workspace.
+  </Card>
+  <Card title="Search and datasets" icon="database" href="/mcp/tools/search-and-datasets">
+    Query the sources a methodology points to.
+  </Card>
+</CardGroup>

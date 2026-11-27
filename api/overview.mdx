@@ -1,13 +1,12 @@
 ---
-title: "Alphacast REST API Reference"
-description: "Explore the Alphacast REST API to manage repositories, datasets, and data providers programmatically from any HTTP client."
+title: "Alphacast REST API reference"
+sidebarTitle: "Overview"
+description: "Base URL, authentication, request and response conventions, and resource groups of the Alphacast REST API."
 ---
 
-The Alphacast API gives you programmatic access to the same data and workflows available in the Alphacast platform. You can list and create repositories, upload and query datasets, and browse data providers — all over standard HTTP. Every response is JSON, and authentication uses your personal API key.
+Use the REST API to manage repositories and datasets, upload and download data, and query external data providers.
 
 ## Base URL
-
-All API requests go to the following base URL:
 
 ```
 https://api.alphacast.io
@@ -15,110 +14,80 @@ https://api.alphacast.io
 
 ## Authentication
 
-The API supports two authentication methods. Both accept the same API key, which you can find in your Alphacast account settings.
-
-**HTTP Basic Auth (recommended)**
-
-Pass your API key as the HTTP Basic Auth username. Leave the password field empty.
+Send your API key as the HTTP Basic Auth username, with an empty password.
 
 ```bash
 curl -u YOUR_API_KEY: https://api.alphacast.io/repositories
 ```
 
-<Warning>
-  Your API key goes in the **username** field, not the password field. The trailing colon in `-u YOUR_API_KEY:` tells curl to send an empty password — this is intentional.
-</Warning>
+Most endpoints require Basic Auth. See [Authentication](/authentication) for the `apiKey` query parameter.
 
-**Query parameter**
+## Plans
 
-You can also pass your API key as a query parameter. This is convenient for quick testing but less secure because the key appears in URLs and server logs.
-
-```bash
-curl "https://api.alphacast.io/repositories?apiKey=YOUR_API_KEY"
-```
-
-<Tip>
-  For production integrations, use HTTP Basic Auth or the [Alphacast Python SDK](/python-sdk/overview) which handles authentication for you.
-</Tip>
-
-## Path conventions
-
-Provider and user-key slugs in path parameters (`/providers/{slug}`, `/user-keys/{slug}`) are **case-insensitive**. `FRED`, `fred`, and `Fred` all resolve to the same provider, so you do not need to normalize casing on the client.
-
-Series IDs in `/providers/{slug}/series/{series_id}` may contain forward slashes (for example, SDMX-style dataflow paths). See the [fetch series reference](/api/providers/series) for examples.
+API access is available on every plan, including Free and Explorer. Catalog access and download volume depend on your plan. Creating datasets requires a plan that lets you create assets. See [pricing](https://www.alphacast.io/pricing).
 
 ## Request format
 
-For `POST` and `PUT` requests, send a JSON body with the `Content-Type: application/json` header:
+Send JSON bodies with `Content-Type: application/json`. [Data uploads](/api/datasets/upload) use `multipart/form-data`. The request body limit is 80 MB.
+
+<span id="path-conventions" style={{ scrollMarginTop: "8rem" }} />
+
+## Query parameters that start with $
+
+Some parameters start with `$`, such as `$format`. In a shell, put the URL in single quotes so the shell does not expand them.
 
 ```bash
-curl -u YOUR_API_KEY: \
-  -X POST \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Dataset", "repositoryId": 42}' \
-  https://api.alphacast.io/datasets
-```
-
-## Data export formats
-
-When downloading dataset data from `GET /datasets/{id}/data`, you can control the output format with the `$format` query parameter:
-
-| Format | Value | Notes |
-|--------|-------|-------|
-| CSV | `csv` | Default if `$format` is omitted |
-| JSON | `json` | — |
-| Excel | `xlsx` | — |
-| TSV | `tsv` | Tab-separated values |
-
-```bash
-# Download as Excel
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$format=xlsx" \
+curl -L -u YOUR_API_KEY: \
+  'https://api.alphacast.io/datasets/123/data?$format=xlsx' \
   --output data.xlsx
 ```
 
+<span id="data-export-formats" style={{ scrollMarginTop: "8rem" }} />
+
+## Export formats
+
+[Download data](/api/datasets/data) accepts these `$format` values:
+
+| Format | Value |
+|--------|-------|
+| CSV | `csv` (default) |
+| JSON | `json` |
+| Excel | `xlsx` |
+| Tab-separated | `tsv` |
+
 ## Pagination
 
-Most listing endpoints (`GET /repositories`, `GET /datasets`, `GET /providers`) return the full set of results your API key can access, without server-side paging. Filter the response client-side using the fields described on each endpoint page.
+| Endpoint | How to limit results |
+|---|---|
+| `GET /repositories` | No pagination. `name` returns up to 100 matches. |
+| `GET /datasets` | No pagination. Filter with `repositoryId` or `name`. `name` returns up to 100 matches. |
+| `GET /datasets/{id}/data` | `$top`, `$skip`, `$last`, `$filter` |
+| Provider browse and search | `limit` and `offset`, where the provider supports them |
 
-Two endpoints expose explicit pagination controls:
+<span id="idempotency" style={{ scrollMarginTop: "8rem" }} />
 
-| Endpoint | Parameters | Notes |
-|---|---|---|
-| `GET /datasets/{id}/data` | `$top`, `$last`, `$filter` | When `$top` or `$last` is set, the response includes a `Row-Count` header with the total row count before truncation. Use it to drive pagination UI. |
-| `GET /providers/{slug}/browse?series=true` | `limit` (max `1000`, default `200`), `offset` | Standard limit/offset paging when listing series under a provider category. |
+## Retrying requests
 
-## Idempotency
+<span id="rate-limits" style={{ scrollMarginTop: "8rem" }} />
 
-Idempotency follows standard HTTP semantics:
+Do not retry a `POST` or an upload blindly. If you lose the response, first check whether the request succeeded. Repository names are unique within an account, and dataset names within a repository, so repeating a successful create returns `409`.
 
-- **`GET`**, **`PUT`**, and **`DELETE`** are idempotent. Repeating the same request produces the same final state.
-- **`POST`** is **not** idempotent. Retrying a `POST /repositories` or `POST /datasets` creates a new resource each time. Treat client-side retries with care; on network errors, prefer `GET` to verify whether the previous request succeeded before retrying.
+## Provider rate limits
 
-The API does not currently honor an `Idempotency-Key` header. If you need at-most-once semantics for a `POST`, deduplicate at the client by checking for an existing resource with the same name before retrying.
+External data providers have their own limits. When you reach one, a provider endpoint can return `429`. For some providers you can [save your own provider key](/api/providers/list#save-a-provider-key). Without your own key, BLS allows 25 requests per day.
 
-## Rate limits
+<span id="api-resources" style={{ scrollMarginTop: "8rem" }} />
 
-Alphacast does not enforce a global rate limit on the API. However, some third-party data providers impose their own restrictions, which Alphacast respects on your behalf. When an upstream limit is hit, the API returns **`429 Too Many Requests`** with an error message naming the provider. For example, FRED inherits its public rate limit; BLS allows up to **25 requests per day** without a registered BLS API key.
-
-If you exceed an upstream limit, requests to that provider's data will fail with `429` until the limit resets. Other providers are not affected.
-
-<Info>
-  Raise an upstream limit by saving your own API key for that provider with `PUT /user-keys/{slug}`. For BLS, register for a free key at [bls.gov](https://www.bls.gov/developers/); for FRED, at [fred.stlouisfed.org](https://fred.stlouisfed.org/docs/api/api_key.html).
-</Info>
-
-## API resources
-
-The Alphacast API is organized into the resource groups below. Each group has its own reference page with full endpoint listings, parameters, and example responses.
+## Resource groups
 
 <CardGroup cols={2}>
   <Card title="Repositories" icon="folder" href="/api/repositories/list">
-    Create and manage repositories, which are the top-level containers for organizing your datasets.
+    List, create, and delete repositories.
   </Card>
   <Card title="Datasets" icon="table" href="/api/datasets/list">
-    Upload, query, and manage datasets — including column configuration, data versioning, and export formats.
+    Manage datasets, upload data, and download it.
   </Card>
-  <Card title="Data providers" icon="database" href="/api/providers/list">
-    Browse and query external financial data providers such as FRED, BLS, and market data sources.
+  <Card title="Data providers" icon="database" href="/providers/overview">
+    Browse, search, and fetch external series.
   </Card>
 </CardGroup>

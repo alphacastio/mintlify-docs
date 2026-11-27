@@ -1,114 +1,81 @@
 ---
-title: "Process Status"
+title: "Process status"
 sidebarTitle: "Process status"
-description: "Poll the status of an upload process from the Alphacast Python SDK to know when your data is ready."
+description: "Check upload processes with the Python SDK and wait until your data is ready."
 ---
 
-When you upload data with `upload_data_from_df` or `upload_data_from_csv`, the call returns immediately with a **process** record. The actual merge runs in the background. Use the methods below to check progress and inspect the result.
+Each upload creates a process that runs in the background. A status is `Requested` at first, and ends as `Processed` or `Error`. It can show `Processing` while it runs. See [The upload process](/uploading/overview#the-upload-process).
 
-<Info>
-  For the full upload lifecycle (states, idempotency, notifications) see [Upload lifecycle](/uploading/overview#the-upload-lifecycle) in the Documentation tab.
-</Info>
+<span id="list-all-processes-for-a-dataset" style={{ scrollMarginTop: "8rem" }} />
 
-## List all processes for a dataset
+<span id="upload-stats" style={{ scrollMarginTop: "8rem" }} />
 
-`processes()` returns every upload process recorded for the dataset, most recent first. The response is the raw API body as bytes — decode and parse it as JSON:
+## List processes
+
+`processes()` returns JSON bytes with the 100 newest processes of the dataset, newest first. You need `Write` permission.
 
 ```python
 import json
 
-raw = alphacast.datasets.dataset(7938).processes()
-processes = json.loads(raw)
+handle = alphacast.datasets.dataset(7938)
 
-for p in processes[:5]:
+for p in json.loads(handle.processes())[:5]:
     print(p["id"], p["status"], p.get("statusDescription"))
 ```
 
-Each entry includes at least:
-
 | Field | Meaning |
 |---|---|
-| `id` | Process ID. |
-| `datasetId` | The dataset this process belongs to. |
-| `status` | `Requested`, `Processing`, `Processed`, or `Error`. |
-| `statusDescription` | Free-text summary (e.g., `1292 values added to database.`). |
-| `deleteMissingFromDB` | The flag value used for this upload. |
-| `onConflictUpdateDB` | The flag value used for this upload. |
-| `createdAt` | When the upload was submitted. |
-| `processedAt` | When processing finished. |
+| `id` | Process ID |
+| `datasetId` | Dataset ID |
+| `status` | Current status |
+| `statusDescription` | Result or error details |
+| `deleteMissingFromDB` | Flag used for the upload |
+| `onConflictUpdateDB` | Flag used for the upload |
+| `createdAt` | When it was submitted |
+| `processedAt` | When processing finished |
 
-## Get a single process
+<span id="get-a-single-process" style={{ scrollMarginTop: "8rem" }} />
 
-If you saved the process ID returned by the upload call, fetch only that record with `process(id)`:
+## Get one process
 
 ```python
-import json
-
-raw = alphacast.datasets.dataset(7938).process(45141)
-record = json.loads(raw)
-
+record = json.loads(handle.process(45141))
 print(record["status"], record.get("statusDescription"))
 ```
 
-The response shape matches a single entry from `processes()`.
+Both methods raise `Exception` if the request fails.
 
-## Polling pattern
+<span id="polling-pattern" style={{ scrollMarginTop: "8rem" }} />
 
-To wait for an upload to complete, poll until the status leaves `Requested`/`Processing`:
+<span id="error-handling" style={{ scrollMarginTop: "8rem" }} />
+
+## Wait for an upload
 
 ```python
 import json
 import time
 
-dataset_id = 7938
-upload = alphacast.datasets.dataset(dataset_id).upload_data_from_df(df)
-process_id = json.loads(upload)["id"]
-
-while True:
-    raw = alphacast.datasets.dataset(dataset_id).process(process_id)
-    record = json.loads(raw)
-    status = record["status"]
-
-    if status in ("Processed", "Error"):
-        break
-
-    time.sleep(5)
-
-if status == "Error":
-    raise RuntimeError(f"Upload failed: {record.get('statusDescription')}")
-
-print("Upload complete:", record.get("statusDescription"))
+def wait_for_upload(handle, process_id, timeout=600):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        record = json.loads(handle.process(process_id))
+        if record["status"] == "Processed":
+            return record
+        if record["status"] == "Error":
+            raise RuntimeError(record.get("statusDescription"))
+        time.sleep(5)
+    raise TimeoutError(f"Process {process_id} did not finish in time")
 ```
 
-<Tip>
-  Most uploads finish in seconds. For large CSVs (hundreds of MB) processing can take several minutes — only one process per dataset runs at a time, so subsequent uploads wait in `Requested` until the in-flight job finishes.
-</Tip>
-
-## Upload stats
-
-After a successful run, the process record's `stats` field contains row-level counts: `insertedValues`, `updatedValues`, `deletedValues`, `changedValues`, `totalValues`, `minDate`, `maxDate`. Use these for logging or to drive your own monitoring:
-
-```python
-record = json.loads(alphacast.datasets.dataset(7938).process(45141))
-stats = record.get("stats", {})
-
-print("Inserted:", stats.get("insertedValues"))
-print("Updated:", stats.get("updatedValues"))
-print("Deleted:", stats.get("deletedValues"))
-```
-
-## Error handling
-
-When the worker rejects the upload — duplicated rows, manifest mismatch, missing date column — the process transitions to `Error` and `statusDescription` carries the message. The full list of validation rules is documented in [Validation rules](/uploading/validation#validation-rules).
-
-```python
-record = json.loads(alphacast.datasets.dataset(7938).process(45141))
-
-if record["status"] == "Error":
-    print("Upload failed:", record["statusDescription"])
-```
+Get `process_id` from the [upload response](/python-sdk/uploading#check-the-response).
 
 ## Next steps
 
-- Trigger a new upload — see [Uploading data](/python-sdk/uploading).
-- Read the dataset back once processing finishes — see [Downloading data](/python-sdk/downloading).
+<CardGroup cols={2}>
+  <Card title="Validation rules" icon="shield-check" href="/uploading/validation">
+    Why an upload can fail.
+  </Card>
+  <Card title="Downloading data" icon="download" href="/python-sdk/downloading">
+    Read the result.
+  </Card>
+</CardGroup>

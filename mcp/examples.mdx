@@ -10,6 +10,22 @@ These walkthroughs show the kinds of prompts that work well against the Alphacas
   New to phrasing requests for the MCP? Start with [Writing better prompts](/mcp/prompting) — the five guidelines, copy-paste templates, and the preview-before-commit pattern for write actions.
 </Note>
 
+## Answer a question with your Workspace's methodology
+
+> "Use my Workspace's methodology for inflation analysis and tell me what changed in the latest month."
+
+What the model does:
+
+1. **`list_agent_prompts`** to see the methodologies available.
+2. **`get_agent_prompt`** with the matching `name` to load its instructions and data scope.
+3. Queries the datasets it indicates, for example with **`get_dataset_profile`** and **`download_dataset`**.
+
+Tips:
+- Loading a methodology does not run the agent or give you more data access.
+- After you switch Workspaces, ask the model to list the methodologies again.
+
+---
+
 ## Find inflation series and download them
 
 > "Find the latest Argentina inflation series in the Alphacast catalog, then download the most recent one as CSV."
@@ -18,7 +34,7 @@ What the model does:
 
 1. **`search_catalog`** with `query: "Argentina inflation"` and `asset: "datasets"`.
 2. Picks the top result and confirms with **`get_dataset`** to verify columns and date range.
-3. Calls **`download_dataset`** with `format: "csv"` to get the rows.
+3. Calls **`download_dataset`** with `format: "csv"` to get the rows. On the hosted server, a large selection comes back as a limited preview and a temporary download link.
 
 Tips:
 - Add `excludeDeprecated: true` to the search if you want only currently-maintained series.
@@ -43,7 +59,7 @@ Tips:
 
 ## Author a chart from an existing pipeline
 
-> "Show me how to configure a line chart for pipeline 4821, validate the config, and add it as a chart-data step."
+> "Show me how to configure a line chart for pipeline 4821 and validate the config. Once I confirm, add it as a chart-data step."
 
 What the model does:
 
@@ -51,7 +67,8 @@ What the model does:
 2. **`get_grapher_config_reference`** with `chartType: "LineChart"` to get the minimal config template and text length limits.
 3. Fills in the template using column names from the pipeline's output.
 4. **`validate_grapher_config`** with `pipelineId: 4821` and `stepOrder` to confirm the config is valid against the actual upstream data.
-5. **`add_pipeline_step`** to append a `chart-data` step with the validated config.
+5. **`add_pipeline_step`** to append a `chart-data` step with the validated config. This is a write action and it runs the pipeline.
+6. **`wait_pipeline_run`** with the returned run ID to confirm the result.
 
 Tips:
 - Always validate before adding the step — the validator catches missing column references and invalid option values that would fail silently otherwise.

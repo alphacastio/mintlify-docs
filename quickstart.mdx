@@ -1,101 +1,89 @@
 ---
-title: "Get Started with Alphacast API"
-description: "Get your API key, create a repository and dataset, upload data, and download it — all in under five minutes using the Alphacast API."
+title: "Get started with the Alphacast API"
+sidebarTitle: "Quickstart"
+description: "Get your API key, create a repository and a dataset, upload a CSV file, and download the data."
 ---
 
-This guide walks you through the core workflow of the Alphacast API: creating a repository to hold your data, adding a dataset to it, uploading a file, and retrieving that data in the format of your choice. All examples use `curl` and the base URL `https://api.alphacast.io`.
+This guide takes you through the core workflow of the REST API with `curl`. Replace the sample IDs with the IDs from your own responses.
 
-<Info>
-  All requests require an API key. See the [authentication guide](/authentication) for details on how to obtain and use your key.
-</Info>
+<Note>
+  API access is available on every plan. Catalog access and download volume depend on your plan. Creating datasets also requires a plan that lets you create assets. Otherwise the API returns `402`. See [pricing](https://www.alphacast.io/pricing).
+</Note>
 
 <Steps>
   <Step title="Get your API key">
-    Log in to [alphacast.io](https://alphacast.io) and navigate to your account settings to generate an API key. You will use this key to authenticate every request.
+    Open [your settings](https://www.alphacast.io/settings). Next to **API Key**, click **Show Key**.
 
-    Alphacast uses HTTP Basic Auth, where the API key is passed as the username with an empty password. The `-u` flag in `curl` handles this automatically:
+    Send the key as the HTTP Basic Auth username, with an empty password. The trailing colon tells `curl` that the password is empty.
 
     ```bash
     curl https://api.alphacast.io/repositories \
       -u YOUR_API_KEY:
     ```
-
-    <Tip>
-      The trailing colon after your API key tells `curl` to send an empty password, which is required by HTTP Basic Auth.
-    </Tip>
   </Step>
 
   <Step title="Create a repository">
-    Repositories are the top-level containers that organize your datasets. Every dataset must belong to a repository. Create one by sending a `POST` request to `/repositories`:
+    Every dataset belongs to a repository.
 
     ```bash
     curl -X POST https://api.alphacast.io/repositories \
       -u YOUR_API_KEY: \
       -H "Content-Type: application/json" \
-      -d '{
-        "name": "My First Repository",
-        "description": "A repository for testing the Alphacast API",
-        "privacy": "Private"
-      }'
+      -d '{"name": "My First Repository", "privacy": "Private"}'
     ```
 
-    The `privacy` field accepts `"Private"` or `"Public"`. A successful response returns `201` with the new repository object:
+    The API returns `201`:
 
     ```json
     {
       "id": 42,
       "name": "My First Repository",
-      "description": "A repository for testing the Alphacast API",
+      "description": null,
       "privacy": "Private",
-      "permission": "Owner"
+      "slug": "my-first-repository-42"
     }
     ```
-
-    Note the `id` — you will need it in the next step.
   </Step>
 
   <Step title="Create a dataset">
-    Within your repository, create a dataset by posting to `/datasets`. The `repositoryId` field must match the repository you created above:
-
     ```bash
     curl -X POST https://api.alphacast.io/datasets \
       -u YOUR_API_KEY: \
       -H "Content-Type: application/json" \
-      -d '{
-        "name": "Quarterly GDP",
-        "repositoryId": 42,
-        "description": "GDP data by quarter",
-        "sourceName": "National Statistics Office",
-        "sourceUrl": "https://example.com/gdp-data"
-      }'
+      -d '{"name": "Quarterly GDP", "repositoryId": 42}'
     ```
 
-    A successful response returns `201` with the dataset object:
+    The API returns `201`:
 
     ```json
     {
       "id": 101,
       "name": "Quarterly GDP",
-      "repositoryId": 42,
-      "description": "GDP data by quarter",
-      "sourceName": "National Statistics Office",
-      "sourceUrl": "https://example.com/gdp-data"
+      "createdAt": "2026-01-15T10:30:00",
+      "repositoryId": 42
     }
     ```
-
-    Note the dataset `id` — you will use it to upload and download data.
   </Step>
 
-  <Step title="Upload data">
-    Upload a CSV file to your dataset using a multipart form `PUT` request to `/datasets/{id}/data`:
+  <Step title="Initialize the columns">
+    Before the first upload, tell Alphacast which column holds the date and which columns, with the date, identify each row.
 
     ```bash
-    curl -X PUT https://api.alphacast.io/datasets/101/data \
+    curl -X PUT https://api.alphacast.io/datasets/101/columns/initializer \
       -u YOUR_API_KEY: \
-      -F "data=@gdp.csv"
+      -H "Content-Type: application/json" \
+      -d '{
+        "dateColumnName": "Date",
+        "dateFormat": "%Y-%m-%d",
+        "entitiesColumnNames": ["Country"]
+      }'
     ```
 
-    Your CSV should have a header row. For example:
+    You can instead send a [manifest](/uploading/manifest) with your first upload. An upload to a new dataset with neither returns `400`.
+  </Step>
+
+  <Step title="Upload a CSV file">
+    Save this as `gdp.csv`:
 
     ```csv
     Date,Country,GDP_USD_Billions
@@ -104,70 +92,79 @@ This guide walks you through the core workflow of the Alphacast API: creating a 
     2023-07-01,USA,6987.6
     ```
 
-    A successful upload returns `201` with a process object describing the upload job:
+    Then upload it:
+
+    ```bash
+    curl -X PUT https://api.alphacast.io/datasets/101/data \
+      -u YOUR_API_KEY: \
+      -F "data=@gdp.csv"
+    ```
+
+    The API returns `201` with an upload process:
 
     ```json
     {
       "id": 500,
-      "datasetId": 101,
-      "status": "pending",
-      "createdAt": "2024-01-15T10:30:00"
+      "status": "Requested",
+      "createdAt": "2026-01-15T10:31:00",
+      "datasetId": 101
     }
     ```
-
-    <Note>
-      Uploads are processed asynchronously. The dataset will be available for download once the process status reaches `"completed"`. You can check status at `GET /datasets/{id}/processes/{process_id}`.
-    </Note>
   </Step>
 
-  <Step title="Download data">
-    Once the upload is processed, download your dataset using `GET /datasets/{id}/data`. By default the response is a CSV file:
+  <Step title="Wait for processing">
+    Uploads are processed in the background. Check the process until `status` is `Processed` or `Error`.
 
     ```bash
-    curl https://api.alphacast.io/datasets/101/data \
+    curl https://api.alphacast.io/datasets/101/processes/500 \
       -u YOUR_API_KEY:
     ```
 
-    You can request other formats using the `$format` query parameter:
+    If the status is `Error`, read `statusDescription`.
+  </Step>
+
+  <Step title="Download the data">
+    The default format is CSV. Use `-L` because the API can answer with a redirect.
+
+    ```bash
+    curl -L https://api.alphacast.io/datasets/101/data \
+      -u YOUR_API_KEY: \
+      --output gdp_download.csv
+    ```
+
+    Choose another format with `$format`. Put the URL in single quotes so your shell does not expand `$format`.
 
     <CodeGroup>
 
-    ```bash CSV (default)
-    curl "https://api.alphacast.io/datasets/101/data" \
-      -u YOUR_API_KEY:
-    ```
-
     ```bash JSON
-    curl "https://api.alphacast.io/datasets/101/data?$format=json" \
+    curl -L 'https://api.alphacast.io/datasets/101/data?$format=json' \
       -u YOUR_API_KEY:
     ```
 
     ```bash XLSX
-    curl "https://api.alphacast.io/datasets/101/data?$format=xlsx" \
+    curl -L 'https://api.alphacast.io/datasets/101/data?$format=xlsx' \
       -u YOUR_API_KEY: \
       --output gdp.xlsx
     ```
 
     ```bash TSV
-    curl "https://api.alphacast.io/datasets/101/data?$format=tsv" \
+    curl -L 'https://api.alphacast.io/datasets/101/data?$format=tsv' \
       -u YOUR_API_KEY:
     ```
 
     </CodeGroup>
 
-    You can also filter and paginate results using OData-style query parameters:
-
-    | Parameter | Description |
-    |-----------|-------------|
-    | `$filter` | OData filter expression, e.g. `Country eq 'USA'` |
-    | `$select` | Comma-separated column names to include |
-    | `$top` | Maximum number of rows to return |
-    | `$last` | Return the last N rows by date |
+    To filter, select columns, or paginate, see [Download data](/api/datasets/data).
   </Step>
 </Steps>
 
 ## Next steps
 
-- Read the [authentication guide](/authentication) for details on both supported auth methods
-- Explore the [API reference](/api/overview) for the full list of endpoints and parameters
-- Learn how [repositories](/concepts/repositories) control access and visibility for your data
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Send and protect your API key.
+  </Card>
+  <Card title="API reference" icon="code" href="/api/overview">
+    Conventions and endpoint groups.
+  </Card>
+</CardGroup>

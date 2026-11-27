@@ -4,7 +4,7 @@ sidebarTitle: "Providers"
 description: "Tools for discovering 30+ external data providers (FRED, BLS, World Bank, OECD, IMF, BIS, ECB, Eurostat, and central banks across Latin America, Europe, and Asia), browsing their catalogs, and fetching series."
 ---
 
-Five read-only tools for working with the external data providers Alphacast integrates with. Browse the live catalog at [alphacast.io/explore/apis](https://www.alphacast.io/explore/apis).
+Five read-only tools for working with the external data providers Alphacast integrates with. They are not available when your Workspace has catalog exploration turned off. Browse the live catalog at [alphacast.io/explore/apis](https://www.alphacast.io/explore/apis).
 
 ## `list_providers`
 
@@ -53,19 +53,19 @@ Walk a provider's hierarchical catalog by path. Only available for providers wit
 </ParamField>
 
 <ParamField body="depth" type="number" default="1">
-  How many levels of children to return in one call. Maximum is 3.
+  How many levels of children to return in one call.
 </ParamField>
 
 <ParamField body="series" type="boolean">
-  When `true`, return paginated series at the current path instead of subfolders.
+  When `true`, include series in the results.
 </ParamField>
 
 <ParamField body="limit" type="number">
-  Page size when `series=true`.
+  Maximum number of items to return.
 </ParamField>
 
 <ParamField body="offset" type="number">
-  Pagination offset when `series=true`.
+  Pagination offset.
 </ParamField>
 
 **Example prompt**
@@ -102,7 +102,7 @@ Search series within a single provider by keyword. Only for providers with the `
 
 ## `get_series`
 
-Fetch the full historical data of one provider series.
+Fetch the data of one provider series. It reads data only and does not publish or change anything.
 
 <ParamField body="slug" type="string" required>
   Provider slug.

@@ -1,70 +1,43 @@
 ---
-title: "GET /repositories/{id} — Get a Repository"
+title: "GET /repositories/{id} — Get a repository"
 sidebarTitle: "Get a repository"
-description: "Retrieve a single repository by its numeric ID. Returns the repository object including name, description, privacy, and your permission level."
+description: "Get one repository and your permission level on it."
 ---
 
-Use this endpoint to fetch the details of a specific repository by its numeric ID. The response includes your effective permission level for that repository, which determines what operations you can perform on it.
-
-## Request
-
-```bash
+```
 GET https://api.alphacast.io/repositories/{repository_id}
 ```
 
-## Authentication
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-<Note>
-  This endpoint requires HTTP Basic Auth. Pass your API key as the username and leave the password empty.
-</Note>
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="errors" style={{ scrollMarginTop: "8rem" }} />
+
+Requires [Basic Auth](/authentication). You can get repositories that you have permission on, and public repositories.
 
 ## Path parameters
 
-<ParamField path="repository_id" type="integer" required>
-  The numeric ID of the repository to retrieve.
-</ParamField>
+<ParamField path="repository_id" type="integer" required>Repository ID.</ParamField>
 
 ## Response
 
-Returns a single repository object on success.
+<ResponseField name="id" type="integer">Repository ID.</ResponseField>
+<ResponseField name="name" type="string">Repository name.</ResponseField>
+<ResponseField name="accountId" type="integer">Account that owns the repository.</ResponseField>
+<ResponseField name="description" type="string">Description. Can be `null`.</ResponseField>
+<span id="param-team" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="id" type="integer">
-  Unique numeric identifier for the repository.
-</ResponseField>
-
-<ResponseField name="name" type="string">
-  Display name of the repository.
-</ResponseField>
-
-<ResponseField name="description" type="string">
-  Optional description of the repository's contents or purpose.
-</ResponseField>
-
-<ResponseField name="privacy" type="string">
-  Visibility setting. Either `"Public"` or `"Private"`.
-</ResponseField>
-
-<ResponseField name="team" type="string">
-  The team this repository belongs to, if applicable.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your access level for this repository. One of `"Owner"`, `"Admin"`, `"Write"`, `"Clone"`, or `"Read"`. This field is determined by the server based on your API key and cannot be set directly.
-</ResponseField>
-
-## Errors
-
-| Status | Meaning |
-|--------|---------|
-| `404`  | No repository with the given ID exists, or you do not have access to it. |
+<ResponseField name="privacy" type="string">`Public` or `Private`.</ResponseField>
+<ResponseField name="slug" type="string">URL-friendly identifier.</ResponseField>
+<ResponseField name="permission" type="string">Your permission: `Owner`, `Admin`, `Write`, `Clone`, or `Read`.</ResponseField>
 
 ## Example
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: \
-  https://api.alphacast.io/repositories/101
+curl -u YOUR_API_KEY: https://api.alphacast.io/repositories/101
 ```
 
 ```python Python
@@ -74,14 +47,9 @@ response = requests.get(
     "https://api.alphacast.io/repositories/101",
     auth=("YOUR_API_KEY", ""),
 )
+response.raise_for_status()
 repository = response.json()
-```
-
-```javascript Node.js
-const response = await fetch("https://api.alphacast.io/repositories/101", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
-const repository = await response.json();
+print(repository["name"], repository["permission"])
 ```
 
 </RequestExample>
@@ -92,17 +60,16 @@ const repository = await response.json();
 {
   "id": 101,
   "name": "Emerging Markets Macro",
-  "description": "GDP, inflation, and rates for EM economies",
+  "accountId": 12,
+  "description": "GDP, inflation, and rates",
   "privacy": "Private",
-  "team": "research",
+  "slug": "emerging-markets-macro-101",
   "permission": "Owner"
 }
 ```
 
 ```json 404
-{
-  "message": "Repository 101 doesn't exist"
-}
+{ "message": "Repository 101 doesn't exist" }
 ```
 
 </ResponseExample>

@@ -1,76 +1,59 @@
 ---
-title: "GET /datasets — List All Datasets"
+title: "GET /datasets — List datasets"
 sidebarTitle: "List datasets"
-description: "Retrieve all datasets accessible to the authenticated user across all repositories. Returns an array of dataset objects with metadata."
+description: "List the datasets in repositories that you or your teams have permission on."
 ---
 
-The list endpoint returns every dataset your account can access, spanning all repositories you own or have been granted permission to view. Use this endpoint to discover available datasets, check their names and IDs, and determine which repository each dataset belongs to before fetching its data.
+Returns the datasets in repositories that your own account or your teams have permission on. It does not list the public catalog.
 
-## Authentication
-
-Authenticate using HTTP Basic Auth. Pass your API key as the username and leave the password empty.
-
-```bash
-curl -u YOUR_API_KEY: https://api.alphacast.io/datasets
+```
+GET https://api.alphacast.io/datasets
 ```
 
-## Request
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-**Method:** `GET`  
-**URL:** `https://api.alphacast.io/datasets`
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
-No query parameters or request body are required.
+Requires [Basic Auth](/authentication).
+
+## Query parameters
+
+<ParamField query="name" type="string">Return only datasets with this name. The match ignores case and accents. Returns up to 100 results. An empty value returns `400`.</ParamField>
+<ParamField query="repositoryId" type="integer">Return only datasets in this repository.</ParamField>
+
+<span id="param-description" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-source-name" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="param-source-url" style={{ scrollMarginTop: "8rem" }} />
 
 ## Response
 
-Returns a JSON array of dataset objects. Each object represents one dataset accessible to your account.
+A JSON array, ordered by your permission level and then by ID.
 
-<ResponseField name="id" type="integer">
-  Unique numeric identifier for the dataset.
-</ResponseField>
+<ResponseField name="id" type="integer">Dataset ID.</ResponseField>
+<ResponseField name="name" type="string">Dataset name.</ResponseField>
+<ResponseField name="createdAt" type="string">Creation time.</ResponseField>
+<ResponseField name="updatedAt" type="string">Last metadata update.</ResponseField>
+<ResponseField name="dataEditedAt" type="string">Last data update. Can be `null`.</ResponseField>
+<ResponseField name="repositoryId" type="integer">Repository ID.</ResponseField>
+<ResponseField name="permission" type="string">Your permission: `Owner`, `Admin`, `Write`, `Clone`, or `Read`.</ResponseField>
 
-<ResponseField name="name" type="string">
-  Display name of the dataset.
-</ResponseField>
+<span id="param-frequency" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="repositoryId" type="integer">
-  ID of the repository this dataset belongs to.
-</ResponseField>
+<span id="param-min-date" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="description" type="string">
-  Optional human-readable description of the dataset's contents.
-</ResponseField>
+<span id="param-max-date" style={{ scrollMarginTop: "8rem" }} />
 
-<ResponseField name="sourceName" type="string">
-  Name of the original data source, if provided at creation time.
-</ResponseField>
-
-<ResponseField name="sourceUrl" type="string">
-  URL linking to the original data source, if provided at creation time.
-</ResponseField>
-
-<ResponseField name="permission" type="string">
-  Your permission level on this dataset. One of `Read`, `Write`, or `Admin`.
-</ResponseField>
-
-<ResponseField name="frequency" type="string">
-  Inferred data frequency of the dataset (e.g., `monthly`, `daily`). May be `null` if not yet determined.
-</ResponseField>
-
-<ResponseField name="minDate" type="string">
-  Earliest date present in the dataset, in `YYYY-MM-DD` format. May be `null` if the dataset is empty.
-</ResponseField>
-
-<ResponseField name="maxDate" type="string">
-  Latest date present in the dataset, in `YYYY-MM-DD` format. May be `null` if the dataset is empty.
-</ResponseField>
+For columns, frequency, and date range, [get a single dataset](/api/datasets/get).
 
 ## Example
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: https://api.alphacast.io/datasets
+curl -u YOUR_API_KEY: \
+  "https://api.alphacast.io/datasets?repositoryId=45"
 ```
 
 ```python Python
@@ -78,15 +61,20 @@ import requests
 
 response = requests.get(
     "https://api.alphacast.io/datasets",
+    params={"repositoryId": 45, "name": "CPI Monthly"},
     auth=("YOUR_API_KEY", ""),
 )
 datasets = response.json()
 ```
 
 ```javascript Node.js
-const response = await fetch("https://api.alphacast.io/datasets", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-});
+const headers = { Authorization: "Basic " + btoa("YOUR_API_KEY:") };
+const params = new URLSearchParams({ repositoryId: "45" });
+
+const response = await fetch(`https://api.alphacast.io/datasets?${params}`, { headers });
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
 const datasets = await response.json();
 ```
 
@@ -97,34 +85,15 @@ const datasets = await response.json();
 ```json 200
 [
   {
-    "id": 123,
-    "name": "US GDP Quarterly",
-    "repositoryId": 45,
-    "description": "Quarterly US GDP figures from BEA",
-    "sourceName": "Bureau of Economic Analysis",
-    "sourceUrl": "https://www.bea.gov/data/gdp",
-    "permission": "Admin",
-    "frequency": "quarterly",
-    "minDate": "1947-01-01",
-    "maxDate": "2024-10-01"
-  },
-  {
     "id": 124,
     "name": "CPI Monthly",
+    "createdAt": "2026-01-10T12:00:00",
+    "updatedAt": "2026-02-01T09:15:00",
+    "dataEditedAt": "2026-02-01T09:15:00",
     "repositoryId": 45,
-    "description": null,
-    "sourceName": null,
-    "sourceUrl": null,
-    "permission": "Read",
-    "frequency": "monthly",
-    "minDate": "2000-01-01",
-    "maxDate": "2024-11-01"
+    "permission": "Owner"
   }
 ]
 ```
 
 </ResponseExample>
-
-<Note>
-  This endpoint returns only datasets your account has at least `Read` permission on. Datasets in repositories you cannot access are not included in the response.
-</Note>

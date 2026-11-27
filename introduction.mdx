@@ -1,67 +1,74 @@
 ---
 title: "Welcome to Alphacast"
 sidebarTitle: "Introduction"
-description: "Alphacast turns economic and financial data into answers, automated workflows, and data products that stay current."
+description: "Find economic and financial data, ask questions about it, and keep your work up to date."
 ---
 
-Alphacast is a platform for economic and financial data. It brings 9,000+ curated datasets from 600+ sources into one place, with particular depth in Latin America. You can query that data from your code or your AI agent, combine it with your own, and build pipelines that keep the results up to date.
+Alphacast brings 9,000+ curated datasets from 600+ sources into one place, with particular depth in Latin America. Explore it in the web app, combine it with your own data, and use the results in the tools you already work with.
 
-These docs are for people who want to **work with Alphacast programmatically**: through the REST API, the Python SDK, or the MCP server. You can also explore the same catalog from the [web app](https://www.alphacast.io/explore) without writing any code.
+<span id="what-you-can-do" style={{ scrollMarginTop: "8rem" }} />
 
-## Choose how to connect
+<span id="find-data" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="add-your-own-data" style={{ scrollMarginTop: "8rem" }} />
+
+## How it works
 
 <CardGroup cols={2}>
-  <Card title="AI agents (MCP)" icon="robot" href="/mcp/quickstart">
-    Connect Claude, Codex, Cursor, or another MCP client. Your agent can search the catalog, read data, and build pipelines from a prompt.
+  <Card title="1. Find data" icon="magnifying-glass" href="/explore">
+    Browse the catalog, query external sources, or bring your own data.
   </Card>
-  <Card title="Python SDK" icon="python" href="/python-sdk/quickstart">
-    Load datasets into a pandas DataFrame, and publish your results back to Alphacast from a script or notebook.
+  <Card title="2. Ask" icon="sparkles" href="/ai">
+    Ask Alphacast AI a question and get charts and tables built on real data.
   </Card>
-  <Card title="REST API" icon="code" href="/quickstart">
-    Create repositories, upload files, and download data as CSV, JSON, XLSX, or TSV from any language or tool.
+  <span id="transform-it-once-keep-it-current" style={{ scrollMarginTop: "8rem" }} />
+
+  <Card title="3. Keep it current" icon="rotate" href="/concepts/repositories">
+    Save your work to a repository, build dashboards and pipelines, and set up alerts.
   </Card>
-  <Card title="Pipelines" icon="diagram-project" href="/steps/overview">
-    Chain steps that import, reshape, and transform data, then publish it as a dataset, chart, or table.
+  <span id="choose-how-to-connect" style={{ scrollMarginTop: "8rem" }} />
+
+  <span id="use-it-where-you-work" style={{ scrollMarginTop: "8rem" }} />
+
+  <Card title="4. Use it anywhere" icon="plug" href="/connect">
+    Work from Claude, ChatGPT, Excel, Google Sheets, Python, MCP, or the API.
   </Card>
 </CardGroup>
 
-## What you can do
+<span id="before-you-start" style={{ scrollMarginTop: "8rem" }} />
 
-### Find data
+## Start here
 
-Search the curated Alphacast catalog, which covers areas such as economic activity, prices, labor, fiscal and monetary policy, the external sector, and markets. Datasets are cleaned, structured, and maintained, and they keep a reference to their source.
-
-When you need something outside the catalog, [data providers](/providers/overview) let you query 30+ external sources through one interface, including FRED, the World Bank, the IMF, the OECD, Eurostat, and central banks such as Banxico, BCRA, and BCRP. Some providers require your own API key.
-
-### Add your own data
-
-[Upload your own files](/uploading/overview) to a repository and use them alongside the catalog, with the same API.
-
-### Transform it once, keep it current
-
-A [pipeline](/steps/overview) records every step between the source data and your final output. When a source dataset updates, the pipeline can run again, so the datasets and charts built on it stay current without manual re-exports. You can apply [economic transformations](/steps/transform), [change frequency](/steps/resample), [merge datasets](/steps/merge), run [seasonal adjustment](/steps/arima-sa), or [describe a transformation to AI](/steps/ai-transform).
-
-### Use it where you work
-
-Pull data into notebooks, spreadsheets, BI tools, applications, or AI agents. If a tool can call a REST API, it can read from Alphacast.
+<CardGroup cols={3}>
+  <Card title="Your first 10 minutes" icon="bolt" href="/getting-started">
+    Go from a question to a saved result.
+  </Card>
+  <Card title="Connect your tools" icon="link" href="/connect">
+    Take the data into your own workflow.
+  </Card>
+  <Card title="Build with the API" icon="code" href="/quickstart">
+    Work with repositories and datasets from code.
+  </Card>
+</CardGroup>
 
 ## Core concepts
 
 | Concept | What it is |
 |---|---|
-| [Repository](/concepts/repositories) | A container for datasets that controls who can access them. |
-| [Dataset](/concepts/datasets) | A structured table of data, organized by date and by entities such as country or category. |
-| [Data provider](/concepts/data-providers) | An external source that you can query through Alphacast. |
+| [Dataset](/concepts/datasets) | A structured table of data, usually organized by date and by entities such as country or category. |
+| [Repository](/concepts/repositories) | The place where your work lives, and where you control who can access it. |
 | [Pipeline](/steps/overview) | An ordered series of steps that turns source data into an output. |
+| [Dashboard](/dashboards) | A page that groups charts, tables, and other views. |
+| [Agent](/ai/agents) | An AI assistant with its own instructions and data access. |
 
-## Before you start
-
-You need an Alphacast account. The REST API and Python SDK use an [API key](/authentication). The MCP server supports [browser sign-in or an API key](/mcp/authentication), depending on how you connect.
+## Plans
 
 <Note>
-  The data you can download, your monthly volume, and your programmatic access depend on your plan. See [pricing](https://www.alphacast.io/pricing) for current limits.
+  Every plan, including Free, can use the API and MCP. Catalog access and download volume depend on your plan. See [pricing](https://www.alphacast.io/pricing).
 </Note>
 
-## Need more than self-serve?
+<span id="need-more-than-self-serve" style={{ scrollMarginTop: "8rem" }} />
 
-Our team can build datasets, connectors, integrations, dashboards, and AI agents with you. See [how we work with you](https://www.alphacast.io/product/delegate), or write to [hello@alphacast.io](mailto:hello@alphacast.io).
+## Work with our team
+
+We can build datasets, connectors, integrations, dashboards, and AI agents with you. See [how we work with you](https://www.alphacast.io/product/delegate), or write to [hello@alphacast.io](mailto:hello@alphacast.io).

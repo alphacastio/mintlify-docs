@@ -1,10 +1,8 @@
 ---
-title: "API Reference"
+title: "Python SDK reference"
 sidebarTitle: "Reference"
-description: "Method-by-method reference of the Alphacast Python SDK — every public class, method, and parameter."
+description: "Quick lookup of Python SDK classes and methods, return types, and error handling."
 ---
-
-A flat, scannable reference for everything in `alphacast`. Every method is documented in detail on its own page; this page is for quick lookup.
 
 ```python
 from alphacast import Alphacast
@@ -12,93 +10,90 @@ from alphacast import Alphacast
 alphacast = Alphacast("YOUR_API_KEY")
 ```
 
-## `Alphacast(api_key)`
+<span id="alphacast-api_key" style={{ scrollMarginTop: "8rem" }} />
 
-The top-level client. Holds your API key and exposes the four sub-clients.
+## Repository
 
-| Attribute | Type | Description |
-|---|---|---|
-| `repository` | `Repository` | [Repository operations](/python-sdk/repositories). |
-| `datasets` | `Datasets` | [Dataset listing and creation](/python-sdk/datasets). |
-| `search` | `Search` | [Catalog search](/python-sdk/search). |
-| `series(series_id)` | `Series` | [Series handle](/python-sdk/series). Returns a fresh `Series` each call. |
+`alphacast.repository`. See [Repositories](/python-sdk/repositories).
 
-## `Repository`
+| Method | Returns |
+|---|---|
+| `read_all()` | `list[dict]` |
+| `read_by_id(repository_id)` | `dict` |
+| `read_by_name(repo_name)` | `dict`, or `False` |
+| `create(repo_name, repo_description=None, privacy="Private", slug=None, returnIdIfExists=False)` | `dict` |
+| `delete(repository_id)` | `bytes` |
 
-Documented on the [Repositories](/python-sdk/repositories) page.
+## Datasets
 
-| Method | Returns | Description |
-|---|---|---|
-| `read_all()` | `list[dict]` | Every repository visible to your API key. |
-| `read_by_id(repository_id)` | `dict` | One repository by numeric ID. |
-| `read_by_name(repo_name)` | `dict \| False` | First repository whose `name` matches exactly. Returns `False` when not found. |
-| `create(repo_name, repo_description=None, privacy="Private", slug=None, returnIdIfExists=False)` | `dict` | Create a new repository. |
-| `delete(repository_id)` | `bytes` | Delete a repository **and all its datasets**. |
+`alphacast.datasets`. See [Datasets](/python-sdk/datasets) and [Uploading](/python-sdk/uploading).
 
-## `Datasets`
+| Method | Returns |
+|---|---|
+| `read_all()` | `list[dict]` |
+| `read_by_name(dataset_name, repo_id=None)` | `dict`, or `None` |
+| `create(dataset_name, repo_id, description="", returnIdIfExists=False)` | `dict` |
+| `dataset(dataset_id)` | Dataset handle |
 
-Documented on the [Datasets](/python-sdk/datasets) page (collection-level methods) and [Uploading data](/python-sdk/uploading) (`create`).
+<span id="dataset-per-dataset-handle" style={{ scrollMarginTop: "8rem" }} />
 
-| Method | Returns | Description |
-|---|---|---|
-| `read_all()` | `list[dict]` | Every dataset where you have owner / admin / write permission. |
-| `read_by_name(dataset_name, repo_id=None)` | `dict \| None` | First dataset whose name matches. Pass `repo_id` to disambiguate. |
-| `create(dataset_name, repo_id, description="", returnIdIfExists=False)` | `dict` | Create an empty dataset in a repository. |
-| `dataset(dataset_id)` | `Dataset` | Per-dataset handle (see below). |
+<span id="read-methods" style={{ scrollMarginTop: "8rem" }} />
 
-## `Dataset` (per-dataset handle)
+<span id="write-methods" style={{ scrollMarginTop: "8rem" }} />
 
-Returned by `alphacast.datasets.dataset(id)`. Each call constructs a fresh handle bound to the given ID.
+## Dataset handle
 
-### Read methods
+| Method | Returns |
+|---|---|
+| `metadata()` | `dict` |
+| `get_column_definitions()` | `list[dict]` |
+| `datestats()` | `bytes` |
+| `download_data(format="csv", startDate=None, endDate=None, filterVariables=[], filterEntities=[])` | Depends on [`format`](/python-sdk/downloading#output-formats) |
+| `initialize_columns(dateColumnName, entitiesColumnNames, dateFormat)` | `bytes` |
+| `upload_data_from_df(df, deleteMissingFromDB=False, onConflictUpdateDB=False, uploadIndex=True, dateColumnName=None, dateFormat=None, entitiesColumnNames=None, stringColumnNames=None, acceptNewColumns=None)` | `bytes` |
+| `upload_data_from_csv(csv, deleteMissingFromDB=False, onConflictUpdateDB=False, dateColumnName=None, dateFormat=None, entitiesColumnNames=None, stringColumnNames=None, acceptNewColumns=None)` | `bytes` |
+| `delete()` | `bytes` |
+| `processes()` | `bytes` |
+| `process(process_id)` | `bytes` |
 
-| Method | Returns | Documented at |
-|---|---|---|
-| `metadata()` | `dict` | [datasets.mdx](/python-sdk/datasets#metadata) |
-| `get_column_definitions()` | `list[dict]` | [datasets.mdx](/python-sdk/datasets#get-column-definitions) |
-| `datestats()` | `bytes` | [datasets.mdx](/python-sdk/datasets#datestats) |
-| `download_data(format="csv", startDate=None, endDate=None, filterVariables=[], filterEntities=[])` | depends on `format` | [downloading.mdx](/python-sdk/downloading) |
+## Search
 
-### Write methods
+| Method | Returns |
+|---|---|
+| `alphacast.search.datasets(query, offset=0, length=10, repository_id=None, search_all=False, exclude_deprecated=False)` | `dict` |
 
-| Method | Returns | Documented at |
-|---|---|---|
-| `initialize_columns(dateColumnName, entitiesColumnNames, dateFormat)` | `bytes` | [uploading.mdx](/python-sdk/uploading#2-initialize-the-columns) |
-| `upload_data_from_df(df, deleteMissingFromDB=False, onConflictUpdateDB=False, uploadIndex=True, dateColumnName=None, dateFormat=None, entitiesColumnNames=None, stringColumnNames=None, acceptNewColumns=None)` | `bytes` | [uploading.mdx](/python-sdk/uploading#from-a-pandas-dataframe) |
-| `upload_data_from_csv(csv, deleteMissingFromDB=False, onConflictUpdateDB=False, dateColumnName=None, dateFormat=None, entitiesColumnNames=None, stringColumnNames=None, acceptNewColumns=None)` | `bytes` | [uploading.mdx](/python-sdk/uploading#from-a-csv-string) |
-| `delete()` | `bytes` | [datasets.mdx](/python-sdk/datasets#delete-a-dataset) |
+See [Search](/python-sdk/search).
 
-### Process
+## Series
 
-| Method | Returns | Documented at |
-|---|---|---|
-| `processes()` | `bytes` | [processes.mdx](/python-sdk/processes#list-all-processes-for-a-dataset) |
-| `process(process_id)` | `bytes` | [processes.mdx](/python-sdk/processes#get-a-single-process) |
+`alphacast.series(series_id)`. See [Series](/python-sdk/series).
 
-## `Search`
+| Method | Returns |
+|---|---|
+| `metadata()` | `dict` |
+| `download_data(format="csv")` | Bytes, a list for `json`, or a DataFrame for `pandas` |
 
-Documented on the [Search](/python-sdk/search) page.
+<span id="process" style={{ scrollMarginTop: "8rem" }} />
 
-| Method | Returns | Description |
-|---|---|---|
-| `datasets(query, offset=0, length=10, repository_id=None, search_all=False, exclude_deprecated=False)` | `dict` | Full-text search. Returns `{data, totalItems, totalPages, currentPage, offset}`. |
+## Errors
 
-## `Series`
+<span id="conventions" style={{ scrollMarginTop: "8rem" }} />
 
-Documented on the [Series](/python-sdk/series) page.
+Read methods, `search.datasets`, and the `create` methods raise `Exception` for failed requests. The `create` methods raise `ValueError` when the item already exists and `returnIdIfExists=False`.
 
-| Method | Returns | Description |
-|---|---|---|
-| `metadata()` | `dict` | Series metadata — name, units, frequency, parent dataset. |
-| `download_data(format="csv")` | depends on `format` | Series values. Same `format` options as `Dataset.download_data`. |
+## Check write results
 
-## Conventions
+These methods return the raw response and do not raise for all HTTP errors. Check the result.
 
-- **Mutating methods return `bytes`.** The SDK returns the raw API response body for `initialize_columns`, `upload_data_from_*`, `delete`, `processes`, `process`, and `get_connector_run`. Decode and `json.loads(...)` if you need a dict.
-- **Read methods return parsed JSON.** `read_all`, `read_by_id`, `metadata`, `get_column_definitions`, and `search.datasets` return Python dicts/lists directly.
-- **`download_data` is special.** Its return type depends on `format`: bytes for CSV/XLSX/TSV, list of dicts for JSON, `pandas.DataFrame` for `pandas`.
-- **All methods raise `Exception`** on HTTP errors (status not OK). The message includes the status code and any server-provided error message.
+| Method | Success looks like |
+|---|---|
+| `upload_data_from_df`, `upload_data_from_csv` | JSON with `id` and `status`. Then [wait for the process](/python-sdk/processes#wait-for-an-upload). |
+| `initialize_columns` | JSON with `columnDefinitions` |
+| `dataset(id).delete()` | Empty bytes |
+| `repository.delete(id)` | Empty bytes |
+
+An error response might not be JSON, so `json.loads` can raise `ValueError`.
 
 ## Source
 
-The SDK is open source. Full source: [github.com/Alphacastio/alphacast-python-sdk/blob/main/alphacast/alphacast.py](https://github.com/Alphacastio/alphacast-python-sdk/blob/main/alphacast/alphacast.py).
+[github.com/Alphacastio/alphacast-python-sdk](https://github.com/Alphacastio/alphacast-python-sdk)

@@ -1,94 +1,108 @@
 ---
-title: "Repositories: Organizing Your Data in Alphacast"
+title: "Save your work in repositories"
 sidebarTitle: "Repositories"
-description: "Repositories are the top-level containers in Alphacast. Every dataset you create belongs to a repository, and you control who can access it."
+description: "Repositories hold your datasets, files, charts, dashboards and pipelines, and control who can see them."
 ---
 
-A repository is the top-level container for all your work in Alphacast. Before you can create a dataset, you need a repository to hold it. Think of a repository like a project folder: it groups related datasets together, carries a privacy setting, and lets you share access with teammates at different permission levels.
+A repository is where you keep your work in Alphacast. What you create is saved in a repository. Each one belongs to a [workspace](/workspaces) and has its own privacy setting and members.
 
-## Privacy settings
+<Frame>
+  <img src="/images/app/repository.jpg" alt="Repository page showing the header, the privacy badge, and the tabs" />
+</Frame>
 
-When you create or update a repository, you choose one of two privacy modes:
+## Create a repository
 
-| Setting | Who can see it |
-|---------|----------------|
-| `Private` | Only you and users you explicitly grant access to |
-| `Public` | Visible to anyone with an Alphacast account |
+<Steps>
+  <Step title="Start a new repository">
+    Click **Create new**, then **Repository**.
+  </Step>
+  <Step title="Describe it">
+    Check the **Owner**, which is your current workspace. Fill in **Repository Name** and **Description**.
+  </Step>
+  <Step title="Choose the privacy">
+    Select **Public access** or **Private to Repository Members**. Whether you can create a private repository depends on your plan.
+  </Step>
+  <Step title="Create it">
+    Click **Create repository**.
+  </Step>
+</Steps>
+
+## Choose your working repository
+
+Your working repository is the default place for new work. To change it, open a repository in your current workspace and click **Use as working repository**. You need write access.
+
+You can also change it from the **Create new** menu with **Change**. Some actions, such as **Transform Data** on a dataset, ask where to save the result without changing your working repository.
+
+## What is inside a repository
+
+| Tab | What you find |
+| --- | --- |
+| **Overview** | The description and a summary of the content |
+| **Views** | [Charts](/charts), tables and [AI Views](/ai/views) |
+| **Datasets** | Datasets, including [the ones you upload](/your-data/datasets) |
+| **Files** | [Documents](/your-data/files) that Alphacast AI can search |
+| **Dashboards** | [Dashboards](/dashboards) |
+| **Pipelines** | [Pipelines](/steps/overview) that build and update data |
+
+You see a content tab when it has content or when you can add content to it. Some repositories show other tabs, depending on your role.
+
+<span id="privacy-settings" style={{ scrollMarginTop: "8rem" }} />
+
+## Privacy
+
+| Setting | Who can see the repository |
+| --- | --- |
+| **Public access** | Anyone who has the link |
+| **Private to Repository Members** | Only members of the repository |
+
+Only the **Owner** can make a private repository public. An **Admin** or the **Owner** can make a public repository private. If public dashboards use content from that repository, Alphacast warns you before you save, because their readers may lose access to it.
 
 ## Permission levels
 
-Access to a repository is controlled through a tiered permission model. Each level inherits the capabilities of the levels below it.
+| Permission | What it is for |
+| --- | --- |
+| **Read** | View the content |
+| **Clone** | Also copy content to a repository where you can write |
+| **Write** | Also create and edit content |
+| **Admin** | Also manage members and repository settings |
+| **Owner** | Also delete or transfer the repository, make it public, and set clone restrictions |
 
-| Permission | Can read | Can clone | Can write | Admin actions | Delete |
-|------------|----------|-----------|-----------|---------------|--------|
-| `Read` | ✓ | | | | |
-| `Clone` | ✓ | ✓ | | | |
-| `Write` | ✓ | ✓ | ✓ | | |
-| `Admin` | ✓ | ✓ | ✓ | ✓ | |
-| `Owner` | ✓ | ✓ | ✓ | ✓ | ✓ |
+To add people, see [Sharing](/sharing).
 
-Only the `Owner` of a repository can delete it.
+## Repository settings
 
-## API endpoints
+Admins see a **Settings** tab. Your personal home repository does not have one.
 
-The base URL for all repository operations is `https://api.alphacast.io`.
+- **Repository Name** and **Description**.
+- **Chart Theme**: the style for [charts](/charts#apply-a-chart-theme) in this repository.
+- **Privacy**. The **Owner** can also require clone access to see and clone pipelines, or to clone dashboards.
+- **Repository Access**: [members and invitations](/sharing).
+- **AI File Processing** and **External Sync Sources**: see [Files](/your-data/files) and [Sync](/your-data/sync).
+- **Danger Zone** (Owner only): transfer ownership or delete the repository.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/repositories` | List all repositories you have access to |
-| `POST` | `/repositories` | Create a new repository |
-| `GET` | `/repositories/{id}` | Get a single repository by ID |
-| `PUT` | `/repositories/{id}` | Update a repository's name, description, or privacy |
-| `DELETE` | `/repositories/{id}` | Delete a repository and all its assets (Owner only) |
+<Warning>
+  Deleting a repository cannot be undone.
+</Warning>
 
-## Examples
+<span id="api-endpoints" style={{ scrollMarginTop: "8rem" }} />
 
-### List your repositories
+<span id="examples" style={{ scrollMarginTop: "8rem" }} />
 
-```bash
-curl https://api.alphacast.io/repositories \
-  -u YOUR_API_KEY:
-```
+<span id="list-your-repositories" style={{ scrollMarginTop: "8rem" }} />
 
-### Create a repository
+<span id="request-body-fields" style={{ scrollMarginTop: "8rem" }} />
 
-The `name` and `privacy` fields are required. You can optionally assign the repository to a `team`.
+## Manage repositories with code
 
-<CodeGroup>
+See the API reference to [list](/api/repositories/list), [create](/api/repositories/create), [update](/api/repositories/update) and [delete](/api/repositories/delete) repositories, or use the [Python SDK](/python-sdk/repositories).
 
-```bash cURL
-curl -X POST https://api.alphacast.io/repositories \
-  -u YOUR_API_KEY: \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Emerging Markets Data",
-    "description": "Macro indicators for EM economies",
-    "privacy": "Private",
-    "team": "research"
-  }'
-```
+## Next steps
 
-```json Response
-{
-  "id": 1042,
-  "name": "Emerging Markets Data",
-  "description": "Macro indicators for EM economies",
-  "privacy": "Private",
-  "permission": "Owner"
-}
-```
-
-</CodeGroup>
-
-<Note>
-Deleting a repository removes all datasets inside it. This action cannot be undone.
-</Note>
-
-## Request body fields
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Display name for the repository |
-| `description` | string | No | Optional free-text description |
-| `privacy` | string | Yes | `"Public"` or `"Private"` |
-| `team` | string | No | Team slug to associate the repository with |
+<CardGroup cols={2}>
+  <Card title="Share a repository" icon="user-plus" href="/sharing">
+    Invite people and set their permissions.
+  </Card>
+  <Card title="Upload your data" icon="upload" href="/your-data/datasets">
+    Create a dataset from your own spreadsheet.
+  </Card>
+</CardGroup>

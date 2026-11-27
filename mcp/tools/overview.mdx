@@ -1,19 +1,22 @@
 ---
 title: "MCP Tools Overview"
 sidebarTitle: "Overview"
-description: "Reference for all 32 tools exposed by the Alphacast MCP server, grouped by capability: search & datasets, providers, tickers, grapher & charts, and pipelines."
+description: "Reference for the 35 tools of the Alphacast MCP server: Workspace, search and datasets, providers, tickers, charts and pipelines."
 ---
 
-The Alphacast MCP server exposes 32 tools across five functional areas. Use this page as a high-level map; click any tool name to jump to its full input schema and example prompt on the corresponding detail page.
+The Alphacast MCP server has 35 tools across six areas. Use this page as a high-level map; click any tool name to jump to its full input schema and example prompt on the corresponding detail page.
 
 ## All tools
 
 | Tool | Group | Access | Summary |
 |---|---|---|---|
-| [`search_catalog`](/mcp/tools/search-and-datasets#search_catalog) | Search & datasets | Read | Search the curated Alphacast catalog or all public repositories. |
+| [`get_current_workspace`](/mcp/tools/workspace#get_current_workspace) | Workspace | Read | Show the Workspace this connection uses. |
+| [`list_agent_prompts`](/mcp/tools/workspace#list_agent_prompts) | Workspace | Read | List the agent methodologies available in the Workspace. |
+| [`get_agent_prompt`](/mcp/tools/workspace#get_agent_prompt) | Workspace | Read | Load one methodology: instructions, data scope and language. |
+| [`search_catalog`](/mcp/tools/search-and-datasets#search_catalog) | Search & datasets | Read | Search the curated Alphacast catalog, optionally including your own data. |
 | [`get_dataset`](/mcp/tools/search-and-datasets#get_dataset) | Search & datasets | Read | Retrieve dataset metadata and column schema. |
 | [`get_dataset_profile`](/mcp/tools/search-and-datasets#get_dataset_profile) | Search & datasets | Read | Comprehensive dataset inspection: columns, entities, date range, row count, and sample rows. |
-| [`download_dataset`](/mcp/tools/search-and-datasets#download_dataset) | Search & datasets | Read | Download dataset rows as JSON or CSV. |
+| [`download_dataset`](/mcp/tools/search-and-datasets#download_dataset) | Search & datasets | Read | Read dataset rows or a filtered selection as JSON or CSV. |
 | [`list_datasets`](/mcp/tools/search-and-datasets#list_datasets) | Search & datasets | Read | List every dataset the API key can access. |
 | [`list_repositories`](/mcp/tools/search-and-datasets#list_repositories) | Search & datasets | Read | List repositories where the API key has Write access or higher. |
 | [`get_repository`](/mcp/tools/search-and-datasets#get_repository) | Search & datasets | Read | Retrieve repository metadata and your permission level. |
@@ -22,19 +25,19 @@ The Alphacast MCP server exposes 32 tools across five functional areas. Use this
 | [`get_provider`](/mcp/tools/providers#get_provider) | Providers | Read | Retrieve a provider's parameters, popular series, and key requirements. |
 | [`browse_provider`](/mcp/tools/providers#browse_provider) | Providers | Read | Walk a provider's hierarchical catalog by path. |
 | [`search_provider`](/mcp/tools/providers#search_provider) | Providers | Read | Search series within a provider by keyword. |
-| [`get_series`](/mcp/tools/providers#get_series) | Providers | Read | Fetch full historical data for a provider series. |
+| [`get_series`](/mcp/tools/providers#get_series) | Providers | Read | Fetch data for a provider series. |
 | [`search_tickers`](/mcp/tools/tickers#search_tickers) | Tickers | Read | Search public market tickers, ETFs, indexes, and ISINs by keyword. |
 | [`get_ticker`](/mcp/tools/tickers#get_ticker) | Tickers | Read | Retrieve a single ticker's profile metadata. |
 | [`get_ticker_data`](/mcp/tools/tickers#get_ticker_data) | Tickers | Read | Pull historical OHLCV price data over a lookback period. |
 | [`get_grapher_config_reference`](/mcp/tools/grapher#get_grapher_config_reference) | Grapher & Charts | Read | Returns chart-authoring recipes, minimal configs, and text length limits for a chart type. |
 | [`validate_grapher_config`](/mcp/tools/grapher#validate_grapher_config) | Grapher & Charts | Read | Validates a chart-data or raw Grapher configuration object. |
 | [`get_chart_details`](/mcp/tools/grapher#get_chart_details) | Grapher & Charts | Read | Fetches chart metadata and Grapher config from a chart URL or slug. |
-| [`list_pipelines`](/mcp/tools/pipelines#list_pipelines) | Pipelines | Read | List pipelines in a repository; defaults to the current/default writable repository when none is given. |
+| [`list_pipelines`](/mcp/tools/pipelines#list_pipelines) | Pipelines | Read | List one page of pipelines in a repository. |
 | [`get_pipeline`](/mcp/tools/pipelines#get_pipeline) | Pipelines | Read | Get full pipeline definition, step list, validation status, and last-run summary. |
 | [`get_pipeline_run`](/mcp/tools/pipelines#get_pipeline_run) | Pipelines | Read | Retrieve a specific pipeline run with status and per-step logs. |
 | [`wait_pipeline_run`](/mcp/tools/pipelines#wait_pipeline_run) | Pipelines | Read | Poll a run until it reaches a terminal state and return logs. |
-| [`get_step_data`](/mcp/tools/pipelines#get_step_data) | Pipelines | Read | Fetch the cached output of a step without triggering a run. |
-| [`get_step_preview`](/mcp/tools/pipelines#get_step_preview) | Pipelines | Read | Materialize a fresh preview for a step and return rows as CSV. |
+| [`get_step_data`](/mcp/tools/pipelines#get_step_data) | Pipelines | Write | Read the last computed output of a step. Can start a pipeline run in some cases. |
+| [`get_step_preview`](/mcp/tools/pipelines#get_step_preview) | Pipelines | Write | Run a preview up to a step and return rows as CSV. |
 | [`list_pipeline_step_types`](/mcp/tools/pipelines#list_pipeline_step_types) | Pipelines | Read | Lists all available pipeline step types and their groups. |
 | [`get_pipeline_step_config`](/mcp/tools/pipelines#get_pipeline_step_config) | Pipelines | Read | Returns the configuration schema for a specific step type. |
 | [`get_pipeline_formula_reference`](/mcp/tools/pipelines#get_pipeline_formula_reference) | Pipelines | Read | Formula syntax and built-in functions reference for calculate-variable and apply-formula steps. |
@@ -46,16 +49,34 @@ The Alphacast MCP server exposes 32 tools across five functional areas. Use this
 ## Safety boundaries
 
 <Warning>
-  The MCP surface is read-only **except** for the four pipeline write tools (`create_pipeline`, `add_pipeline_step`, `edit_pipeline_step`, `delete_pipeline_step`). Deleting repositories, datasets, or whole pipelines is intentionally **not** exposed — those actions are only available from the Alphacast web UI, never from an agent. Provider API keys are managed through the [Alphacast settings](https://www.alphacast.io/settings) web UI.
+  Six tools need write access (the `mcp:write` scope on the hosted server):
+
+  - `create_pipeline`, `add_pipeline_step`, `edit_pipeline_step` and `delete_pipeline_step` change pipelines. Saving a change also runs the pipeline.
+  - `get_step_preview` cancels runs of that pipeline that are processing and starts a preview run.
+  - `get_step_data` can start a full pipeline run for some Data Snapshot steps. It needs both `mcp:read` and `mcp:write`.
 </Warning>
+
+A pipeline run can fetch external data and run the pipeline's output steps. For example, a publish step writes to its dataset. Review a change before you ask your assistant to make it.
+
+There are no tools to delete repositories, datasets or whole pipelines. You manage provider API keys in [Alphacast settings](https://www.alphacast.io/settings).
+
+## Tool availability
+
+If your Workspace has catalog exploration turned off, the server omits nine tools and lists 26:
+
+- `search_catalog`
+- `list_providers`, `get_provider`, `browse_provider`, `search_provider`, `get_series`
+- `search_tickers`, `get_ticker`, `get_ticker_data`
+
+Workspace, dataset, repository, chart and pipeline tools remain available. On the hosted server, a change to this setting starts a new session. On the local server, restart it to pick up the change.
 
 ## Tool conventions
 
-- **IDs** are always numeric (`integer`). Tools accept strings and coerce them — `"42"` works the same as `42`.
-- **Formats** for downloads: `json` (default for `download_dataset`) or `csv`. For pipeline step output the default is `csv`.
-- **Permissions** mirror the REST API. The API key's permission on each repository determines which tools succeed.
-- **Default repository fallback.** When a tool accepts an optional `repositoryId` (for example `create_pipeline` or `list_pipelines`), omitting it resolves to the current/default writable repository for the active workspace automatically — the server does not interrupt to ask.
+- **IDs** are numeric. Most tools also accept numbers sent as strings.
+- **Formats:** `download_dataset` and `get_ticker_data` default to `json`. `get_step_data` defaults to `csv`.
+- **Permissions:** your repository permissions and your [plan](https://www.alphacast.io/pricing) determine which calls succeed.
+- **Default repository:** when `create_pipeline` or `list_pipelines` has no `repositoryId`, the server uses your default writable repository.
 
 ## Underlying API
 
-Each tool maps to one or more endpoints in the Alphacast REST API. The mapping is documented on each tool's detail page. You don't need to call those endpoints yourself — the MCP server is the recommended interface for programmatic access.
+The tools call Alphacast services on your behalf. You don't need to call any endpoint yourself. To write your own code against Alphacast, see the [API overview](/api/overview).

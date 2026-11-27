@@ -1,0 +1,77 @@
+---
+title: "Upload your own datasets"
+sidebarTitle: "Your datasets"
+description: "Turn a CSV or Excel file into a dataset you can chart, query, transform and connect."
+---
+
+Upload a table when you want to use your own numbers with catalog data. For documents such as PDFs, use [Files](/your-data/files). Uploading data requires a [plan](https://www.alphacast.io/pricing) that includes it.
+
+## Prepare your file
+
+- Use CSV or XLSX. The upload screen lists a limit of 10 MB.
+- Use one header row, with one column per field.
+- Include at least one date column.
+- Know which columns identify each row, such as a country. These are entities.
+
+For automated uploads, see [uploading data with the API](/uploading/overview).
+
+## Create a dataset
+
+<Steps>
+  <Step title="Start">
+    Click **Create new**, then **Dataset**.
+  </Step>
+  <Step title="Connect your data">
+    Click **Upload a file** or drag it onto the page. You can also [add a file from Google Drive](/your-data/sync#sync-a-dataset-from-google-drive). If a workbook has several sheets, select one.
+  </Step>
+  <Step title="Configure your data">
+    Review each column. Alphacast may suggest a setup. Choose its **Data Type** and, for dates, the date format. Use **Handle as Entity** for identifying columns and **Ignore Column** to leave a column out. Columns with no configuration are treated as numeric variables. Click **Next**.
+  </Step>
+  <Step title="Name your dataset">
+    Choose the **Repository** and enter a **Name**. A good name states the type of data, the topic and the frequency. Click **Save**.
+  </Step>
+</Steps>
+
+<Note>
+  If your file has a complex layout, Alphacast may say that it looks like a great fit for AI extraction. You can then save it as a [file](/your-data/files) and use **Extract Dataset**.
+</Note>
+
+## Update the data
+
+Open the dataset, choose **Upload data** and add the new file. Then choose how to handle it:
+
+| Choice | Options |
+| --- | --- |
+| Data that is missing in the new file | **Append. Keep old data as well.** or **Delete previous data. Treat this file as the final dataset.** |
+| Data conflicts | **Update dataset with new values, and ignore conflicts.** or **Treat conflicts as errors, and let me know about them.** |
+
+You need write access. **Upload data** is not available when a scheduled connector updates the dataset or when a pipeline publishes it.
+
+Check the **Versions** tab to review the history of the data.
+
+## Change dataset settings
+
+If you can manage the dataset, open its **Settings** tab to:
+
+- Edit the name, description and data source name and URL.
+- Change column data types or reorder columns. Reordering can affect integrations that depend on column order.
+- Turn on **Lock Manifest**. Missing data is then not deleted and new columns are ignored.
+- Mark the dataset as deprecated and choose a replacement.
+- Move or delete the dataset.
+
+If a pipeline publishes the dataset, remove that publishing step or delete the pipeline before you delete the dataset.
+
+<Warning>
+  Deleting a dataset cannot be undone.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Keep it current" icon="rotate" href="/your-data/sync">
+    Sync from Google Drive.
+  </Card>
+  <Card title="Transform it" icon="diagram-project" href="/steps/overview">
+    Combine it with catalog data.
+  </Card>
+</CardGroup>

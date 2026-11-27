@@ -71,39 +71,52 @@ On the hosted server (`https://mcp.alphacast.io/mcp`) the first connection trigg
 
 ### Hosted server: `401 Unauthorized` after it was working
 
-The OAuth token expired or was revoked, and the client didn't refresh it.
+Your sign-in expired or is no longer valid, and the client didn't renew it.
 
 **Fixes:**
-- Re-authenticate: in Claude Code run `/mcp → alphacast → Authenticate`; in other clients, reconnect / log in again from the MCP settings.
-- If you revoked the session in your Alphacast account, that's expected — sign in again to mint a new token.
-- For the `mcp-remote` bridge, delete `~/.mcp-auth` and restart the client to force a fresh login.
+- Sign in again: in Claude Code run `/mcp`, select `alphacast` and choose **Authenticate**. In other clients, reconnect from the MCP settings.
+- For the `mcp-remote` bridge, delete `~/.mcp-auth` and restart the client.
 
-### Local server: `401 Unauthorized` on every tool call
+### `workspace_context_changed`
 
-The `ALPHACAST_API_KEY` environment variable is missing, empty, or the key is invalid. (This applies to the local npm package; the hosted server uses OAuth — see above.)
+The hosted server returns this with a `404` when the context of an open session changed. This happens after you switch Workspaces, or when the connection's API key, scopes or catalog setting change.
 
 **Fixes:**
-- Verify the key is set in your client's MCP configuration under `"env": { "ALPHACAST_API_KEY": "..." }`.
-- Regenerate the key in [Alphacast → Settings](https://www.alphacast.io/settings) if the original was rotated, leaked, or revoked.
-- For Claude Code, run `claude mcp list` and confirm the environment variable is configured correctly.
-- For Codex, run `codex mcp list` and verify the `env` block in your `config.toml`.
+- Start a new MCP session. If your client doesn't do it automatically, reconnect the server.
+- Then ask the assistant to call [`list_agent_prompts`](/mcp/tools/workspace#list_agent_prompts) again. Methodologies from the previous Workspace no longer apply.
+
+### `session_not_found`
+
+The hosted server no longer has your session. Reconnect to start a new one.
+
+### `This tool requires the mcp:write scope`
+
+The connection doesn't have write access. Reconnect Alphacast and grant `mcp:write`. [Six tools](/mcp/tools/overview#safety-boundaries) need it, including `get_step_preview` and `get_step_data`.
+
+### Catalog, provider or ticker tools are missing
+
+Your Workspace has catalog exploration turned off, so the server lists 26 tools instead of 35. See [Tool availability](/mcp/tools/overview#tool-availability). Check with [`get_current_workspace`](/mcp/tools/workspace#get_current_workspace). On the local server, restart it after the setting changes.
 
 ### `403 Forbidden` on a specific tool call
 
-Authentication succeeded (OAuth token or API key) but your account does not have the permission required for this action.
+Authentication succeeded, but your account does not have the permission required for this action.
 
 **Fixes:**
 - Read access required: ensure your account has at least Read permission on the target repository.
-- Write tools (pipeline authoring) need Write access on the repository, and — on the hosted server — the `mcp:write` scope, which is granted during the OAuth consent step.
+- Pipeline editing needs Write access on the repository and, on the hosted server, the `mcp:write` scope.
 - Have the repository owner grant your account the missing permission level.
 
-## Quota errors
+<span id="quota-errors" style={{ scrollMarginTop: "8rem" }} />
 
-### `402 Payment Required`
+<span id="402-payment-required" style={{ scrollMarginTop: "8rem" }} />
 
-The action exceeds your plan's quota — typically downloads or paid-tier provider usage.
+## Plan and quota errors
 
-**Fix:** upgrade your subscription, or wait until the quota resets. See [Error codes](/api/errors#402-payment-required).
+### "This action requires a membership upgrade" or a download quota error
+
+The action is not included in your plan, or you reached a download limit. For example, creating pipelines requires a plan that can create content.
+
+**Fix:** check your [plan](https://www.alphacast.io/pricing) and [error codes](/api/errors#402-payment-required).
 
 ## Connection errors
 
@@ -116,11 +129,23 @@ The client can't establish the Streamable HTTP connection to `https://mcp.alphac
 - Check outbound network access to `mcp.alphacast.io` and `auth.alphacast.io` on port 443: `curl -I https://mcp.alphacast.io/mcp` should return `401` (auth required), not a timeout or DNS error.
 - If your client doesn't support remote MCP servers at all, it will silently ignore the `url` field. Use the [`mcp-remote` bridge](/mcp/configuration/other-clients#hosted-remote-oauth) or the local npm package instead.
 
-### Local server: client says "MCP server failed to start" or shows a red status
+<span id="local-server-401-unauthorized-on-every-tool-call" style={{ scrollMarginTop: "8rem" }} />
 
-The client could not spawn the `npx -y @alphacast/mcp` subprocess.
+<span id="local-server-client-says-“mcp-server-failed-to-start”-or-shows-a-red-status" style={{ scrollMarginTop: "8rem" }} />
+
+### Local server does not start
+
+Your client reports that the server failed to start, or shows a red status. The local server checks your API key when it starts, so a missing or invalid key stops it. Check the client's MCP logs for one of these messages:
+
+| Log message | Cause |
+|---|---|
+| `ALPHACAST_API_KEY environment variable is required` | The variable is missing or empty. |
+| `Unable to load Workspace configuration` | The key is not valid, or the server can't reach Alphacast. |
+| `npx` not found | Node.js is missing or not on your PATH. |
 
 **Fixes:**
+- Set the key in your client's MCP configuration under `"env": { "ALPHACAST_API_KEY": "..." }`. Copy the current key from [Alphacast settings](https://www.alphacast.io/settings), then restart the client.
+- Check that your network allows connections to `www.alphacast.io`.
 - Ensure **Node.js 18+** is installed and `npx` is on your system PATH. Run `npx --version` in a terminal to check. No admin rights to install it? See [the portable install](#no-admin-rights-to-install-nodejs-windows).
 - Verify the command in your MCP config: `"command": "npx"`, `"args": ["-y", "@alphacast/mcp"]`.
 - On Windows, if `npx` is not on PATH, use the full path to `npx.cmd` as the command, e.g. `"command": "C:\\Program Files\\nodejs\\npx.cmd"` (or wherever Node is installed — note the doubled backslashes).
@@ -131,30 +156,38 @@ The client could not spawn the `npx -y @alphacast/mcp` subprocess.
 In Claude Desktop, the server can show a "running" badge in **Settings → Developer** even when it failed to start or authenticate. The chat gives no error: there's no tools icon, and Claude answers your questions from general knowledge as if the MCP server didn't exist.
 
 **Fixes:**
-- Don't trust the badge — verify in a new chat: the tools menu (slider icon) should list **alphacast** with 32 tools, and a test prompt like *"List my Alphacast repositories"* should produce a visible tool call. An answer with no tool call means the server isn't connected.
+- Don't trust the badge — verify in a new chat: the tools menu (slider icon) should list **alphacast** with its tools, and a test prompt like *"List my Alphacast repositories"* should produce a visible tool call. An answer with no tool call means the server isn't connected.
 - Open **Settings → Developer → Open MCP Logs**. The logs are the only reliable way to diagnose this state. Typical causes: `npx` not found (Node.js missing or not on PATH), an invalid `ALPHACAST_API_KEY`, or a malformed config file.
 - After fixing, quit Claude Desktop completely from the system tray (closing the window is not enough) and relaunch.
 
 ### Tool calls hang or time out
 
-The server calls the Alphacast REST API internally. If those calls fail or hang, tool calls will too.
+The server calls Alphacast services to run tools. If those calls fail or hang, tool calls will too.
+
+For pipeline runs, a wait timeout does not mean the run failed. Check the same run again with `wait_pipeline_run` instead of starting another one.
 
 **Fixes:**
 - Confirm network access to `api.alphacast.io` and `www.alphacast.io`: `curl -I https://api.alphacast.io`.
 - If you're behind a corporate proxy or VPN, ensure the proxy allows outbound traffic to those domains on port 443.
 
-## Data quirks
+<span id="data-quirks" style={{ scrollMarginTop: "8rem" }} />
 
-### Downloads return a URL instead of rows
+<span id="downloads-return-a-url-instead-of-rows" style={{ scrollMarginTop: "8rem" }} />
 
-CSV downloads return an S3 pre-signed URL as the body instead of streaming the bytes. The MCP server detects this case and follows the URL transparently — but if you are inspecting raw HTTP traffic, you'll see the URL pattern. Nothing to fix; this is expected.
+<span id="ids-in-errors-look-like-strings" style={{ scrollMarginTop: "8rem" }} />
 
-### IDs in errors look like strings
+## Data results
 
-Error messages may show IDs as strings even though the API expects integers. The MCP server coerces strings to integers automatically when calling tools, so passing `"42"` instead of `42` works the same way.
+### A download returns a link or only part of the rows
+
+On the hosted server, `download_dataset` returns a limited number of rows. When they are incomplete, or completeness is unknown, it can also return a temporary link to the full selection. See [output modes](/mcp/tools/search-and-datasets#output-modes).
+
+### A download link no longer works
+
+Links expire after 15 minutes. Ask the assistant to call `download_dataset` again.
 
 ## Where to get help
 
-- For server-side issues, contact Alphacast support with the time of failure and the tool name. Server logs include the request ID.
+- For server-side issues, contact Alphacast support with the time of failure and the tool name.
 - For protocol-level questions about MCP itself, see the [official MCP spec](https://modelcontextprotocol.io/).
 - For client-specific issues (Claude Code, Codex, etc.), check that client's documentation — the way each client surfaces tool-call errors varies.

@@ -1,134 +1,104 @@
 ---
-title: "GET /datasets/{id}/data — Download Dataset Data"
+title: "GET /datasets/{id}/data — Download data"
 sidebarTitle: "Download data"
-description: "Download dataset rows as CSV, JSON, XLSX, or TSV. Supports OData filtering, column selection, row limits, and transposing the output."
+description: "Download a dataset as CSV, JSON, Excel, or TSV, with filters, column selection, and pagination."
 ---
 
-This endpoint streams the rows of a dataset in your preferred format. For simple downloads with no filters applied in CSV format, the API returns an HTTP `302` redirect to a short-lived pre-signed URL pointing directly to the underlying file in cloud storage — your HTTP client will follow this redirect automatically. When you apply filters, select columns, or request a non-CSV format, the server queries and transforms the data on the fly before returning it.
+```
+GET https://api.alphacast.io/datasets/{dataset_id}/data
+```
 
-## Authentication
+<span id="authentication" style={{ scrollMarginTop: "8rem" }} />
 
-Authenticate using HTTP Basic Auth with your API key as the username. You can alternatively pass the key as the `apiKey` query parameter. You must have at least `Read` permission on the dataset.
+<span id="param-api-key" style={{ scrollMarginTop: "8rem" }} />
 
-## Request
+Use [Basic Auth](/authentication). This endpoint also accepts `?apiKey=`, for tools that cannot send headers.
 
-**Method:** `GET`  
-**URL:** `https://api.alphacast.io/datasets/{dataset_id}/data`
+<span id="request" style={{ scrollMarginTop: "8rem" }} />
 
 ## Path parameters
 
-<ParamField path="dataset_id" type="integer" required>
-  The numeric ID of the dataset to download.
-</ParamField>
+<ParamField path="dataset_id" type="integer" required>Dataset ID.</ParamField>
 
 ## Query parameters
 
-<ParamField query="apiKey" type="string">
-  Your Alphacast API key. Use this as an alternative to HTTP Basic Auth, for example when constructing download links for use in a browser or spreadsheet application.
-</ParamField>
+<ParamField query="$format" type="string" default="csv">`csv`, `json`, `xlsx`, or `tsv`.</ParamField>
+<ParamField query="$select" type="string">Comma-separated column names or column IDs. Date and entity columns are always included. Example: `$select=GDP,Inflation`.</ParamField>
+<ParamField query="$filter" type="string">Rows to return. See [Filter rows](#filter-rows).</ParamField>
+<ParamField query="$top" type="integer">Return up to the first N rows, after filtering.</ParamField>
+<ParamField query="$skip" type="integer">Skip N rows. Use it with `$top` to paginate. You cannot combine it with `versionId`.</ParamField>
+<ParamField query="$last" type="integer">Return up to N rows from the most recent dates. Without a date column, it returns the first N rows. You cannot combine it with `$top`.</ParamField>
+<ParamField query="$combineEntities" type="boolean">Combine entity columns into one column. The result can be empty when there are too many combinations. Omit the parameter to turn it off.</ParamField>
+<ParamField query="includeIds" type="boolean">Include column IDs in the output.</ParamField>
+<ParamField query="dropNA" type="boolean">With `$select`, drop rows where the selected value columns are all empty.</ParamField>
+<ParamField query="transpose" type="boolean">Transpose the table, with dates as columns. If a transposed CSV is not available for the dataset or version, the API returns `409`.</ParamField>
+<ParamField query="versionId" type="string">Download a specific stored version of the data.</ParamField>
 
-<ParamField query="$format" type="string" default="csv">
-  Output format for the downloaded data. Accepted values: `csv`, `json`, `xlsx`, `tsv`.
-
-  When the format is `csv` and no other filters are applied, the API returns a `302` redirect to a pre-signed URL instead of streaming the file directly.
-</ParamField>
-
-<ParamField query="$select" type="string">
-  A comma-separated list of column names or column IDs to include in the output. Entity/dimension columns (such as `Date` and `Country`) are always prepended automatically so the result remains well-formed.
-
-  Example: `$select=Date,GDP` or `$select=1,3` (using column IDs).
-</ParamField>
-
-<ParamField query="$filter" type="string">
-  An OData filter expression to restrict the rows returned. Column names are case-sensitive and must match the column names in the dataset schema exactly.
-
-  Supported comparison operators: `eq`, `ne`, `gt`, `lt`, `ge`, `le`.  
-  Supported logical operators: `and`, `or`.
-
-  Example: `$filter=Country eq 'USA' and Date ge '2020-01-01'`
-</ParamField>
-
-<ParamField query="$top" type="integer">
-  Limit the response to the first N rows. When combined with `$filter`, the limit is applied after filtering. When `$top` is set, the response includes a `Row-Count` header with the total number of rows matching any applied filter (before the limit), so you can implement pagination.
-</ParamField>
-
-<ParamField query="$last" type="integer">
-  Return only the rows corresponding to the last N date periods in the dataset. For example, `$last=100` returns approximately the most recent 100 rows ordered by the date column. When `$last` is set, the response includes a `Row-Count` header with the total row count of the dataset.
-</ParamField>
-
-<ParamField query="$combineEntities" type="boolean">
-  When `true`, entity/dimension columns are merged into a single combined column in the output. Useful for pivot-style formats.
-</ParamField>
-
-<ParamField query="includeIds" type="boolean">
-  When `true`, column IDs are included in the output header row alongside column names.
-</ParamField>
-
-<ParamField query="dropNA" type="boolean">
-  When `true` and combined with `$select`, rows where all selected value columns are `null` or empty are omitted from the output.
-</ParamField>
-
-<ParamField query="transpose" type="boolean">
-  When `true`, the output matrix is transposed: dates become column headers and columns become row labels. When no other filters are active and the format is CSV, a pre-signed URL to a pre-transposed file is returned instead.
-</ParamField>
-
-<ParamField query="versionId" type="string">
-  A specific version ID to download. Use this to retrieve a historical snapshot of the dataset's data as it existed at a previous point in time.
-</ParamField>
+Other parameters that start with `$` return `400`.
 
 ## Response
 
-When no filters are applied and the format is `csv`, the API responds with `302 Found` and a `Location` header containing a short-lived pre-signed download URL. Your HTTP client will follow this redirect automatically.
+The API returns the file directly or answers with a `302` redirect to a short-lived download link. Always follow redirects (`curl -L`). Do not save the redirect link for later, because it expires quickly.
 
-When filters are applied or a non-CSV format is requested, the API streams the response directly with the appropriate `Content-Type`.
+When the API returns the file directly, the `Content-Type` header matches the format:
 
-| Format | Content-Type |
-|--------|--------------|
+| `$format` | `Content-Type` |
+|---|---|
 | `csv` | `text/csv` |
 | `json` | `application/json` |
 | `xlsx` | `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` |
 | `tsv` | `text/tab-separated-values` |
 
-### Row-Count response header
+CSV output can start with a UTF-8 byte order mark. In Python, decode it with `utf-8-sig`.
 
-When you use `$top` or `$last`, the response includes a `Row-Count` header with the total untruncated row count:
+<span id="row-count-response-header" style={{ scrollMarginTop: "8rem" }} />
 
+With `$top` or `$last`, the `Row-Count` response header gives the number of matching rows before the limit, when available.
+
+### JSON format
+
+`$format=json` returns an object with a `schema` and a `data` array:
+
+```json
+{
+  "schema": { "fields": [ { "name": "Date", "type": "datetime" }, { "name": "GDP", "type": "number" } ] },
+  "data": [
+    { "Date": "2025-01-01T00:00:00.000", "GDP": 100.5 }
+  ]
+}
 ```
-Row-Count: 4823
-Access-Control-Expose-Headers: Row-Count
-```
 
-Use this value to display pagination metadata or calculate how many more pages of data remain.
+## Plan access to data
 
-## OData filter syntax
+Your plan decides which catalog datasets you can download in full. See [pricing](https://www.alphacast.io/pricing).
 
-The `$filter` parameter accepts OData filter expressions. Column names must exactly match the column names shown in the dataset schema (use `GET /datasets/{id}` to retrieve the schema).
+- If your plan does not include full download of a dataset, the API returns a **preview** instead of an error. A preview is a limited sample and might not include the most recent data.
+- If you have used your plan's download allowance, the response can be a file with an `error` column and an upgrade message instead of data.
+
+In automated jobs, check the content of the file, not only the status code.
+
+<span id="odata-filter-syntax" style={{ scrollMarginTop: "8rem" }} />
+
+## Filter rows
 
 | Operator | Meaning | Example |
-|----------|---------|---------|
+|---|---|---|
 | `eq` | Equal | `Country eq 'USA'` |
-| `ne` | Not equal | `Country ne 'Canada'` |
-| `gt` | Greater than | `GDP gt 1000` |
-| `lt` | Less than | `GDP lt 5000` |
-| `ge` | Greater than or equal | `Date ge '2020-01-01'` |
-| `le` | Less than or equal | `Date le '2024-12-31'` |
-| `and` | Logical AND | `Country eq 'USA' and Date ge '2020-01-01'` |
-| `or` | Logical OR | `Country eq 'USA' or Country eq 'Canada'` |
+| `gt`, `ge` | Greater than, greater than or equal | `Date ge '2020-01-01'` |
+| `lt`, `le` | Less than, less than or equal | `Date le '2024-12-31'` |
+| `and`, `or` | Combine conditions | `Country eq 'USA' or Country eq 'Canada'` |
 
-String values must be enclosed in single quotes. Date values must use `YYYY-MM-DD` format.
-
-<Note>
-  Filtering is validated against the dataset's column schema. If you reference a column name that does not exist in the dataset, the API returns `400 Bad Request` listing the invalid column names.
-</Note>
+- These are the supported operators.
+- Column names are case-sensitive. A name that does not exist returns `400` with the list of columns.
+- Put string values in single quotes. For a column name with spaces, put the name in single quotes too.
+- Values are compared as text. This works for entity values and `YYYY-MM-DD` dates. Do not rely on `gt` or `lt` for numbers.
 
 ## Examples
-
-**Basic download — returns a 302 redirect to a pre-signed CSV URL:**
 
 <RequestExample>
 
 ```bash cURL
-curl -u YOUR_API_KEY: -L \
+curl -L -u YOUR_API_KEY: \
   https://api.alphacast.io/datasets/123/data \
   --output data.csv
 ```
@@ -138,66 +108,58 @@ import requests
 
 response = requests.get(
     "https://api.alphacast.io/datasets/123/data",
+    params={"$format": "csv", "$filter": "Country eq 'USA'"},
     auth=("YOUR_API_KEY", ""),
-    allow_redirects=True,
 )
+response.raise_for_status()
 with open("data.csv", "wb") as f:
     f.write(response.content)
 ```
 
 ```javascript Node.js
-const response = await fetch("https://api.alphacast.io/datasets/123/data", {
-  headers: { Authorization: "Basic " + btoa("YOUR_API_KEY:") },
-  redirect: "follow",
-});
-const csv = await response.text();
+import { writeFile } from "node:fs/promises";
+
+const headers = { Authorization: "Basic " + btoa("YOUR_API_KEY:") };
+const params = new URLSearchParams({ $format: "csv", $filter: "Country eq 'USA'" });
+
+// fetch follows redirects by default
+const response = await fetch(`https://api.alphacast.io/datasets/123/data?${params}`, { headers });
+if (!response.ok) {
+  throw new Error(`${response.status}: ${await response.text()}`);
+}
+await writeFile("data.csv", Buffer.from(await response.arrayBuffer()));
 ```
 
 </RequestExample>
 
-**Filter by country:**
+Filter rows. `--data-urlencode` encodes the spaces and quotes. The backslash keeps the shell from expanding `$filter`.
 
 ```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$filter=Country%20eq%20'USA'"
+curl -L -G -u YOUR_API_KEY: \
+  https://api.alphacast.io/datasets/123/data \
+  --data-urlencode "\$filter=Country eq 'USA' and Date ge '2020-01-01'" \
+  --data-urlencode "\$format=json"
 ```
 
-**Select specific columns:**
+Select columns:
 
 ```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$select=Date,GDP"
+curl -L -u YOUR_API_KEY: \
+  'https://api.alphacast.io/datasets/123/data?$select=GDP'
 ```
 
-**Return only the last 100 rows by date:**
+Get the second page of 100 rows:
 
 ```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$last=100"
-```
-
-**Download as JSON:**
-
-```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$format=json"
-```
-
-**Combine a date filter with a country filter and return JSON:**
-
-```bash
-curl -u YOUR_API_KEY: \
-  "https://api.alphacast.io/datasets/123/data?\$format=json&\$filter=Country%20eq%20'USA'%20and%20Date%20ge%20'2020-01-01'"
+curl -L -u YOUR_API_KEY: \
+  'https://api.alphacast.io/datasets/123/data?$top=100&$skip=100'
 ```
 
 ## Error responses
 
 | Status | Cause |
-|--------|-------|
-| `400 Bad Request` | The `$filter` expression could not be parsed, or references a column that does not exist in the dataset. |
-| `401 Unauthorized` | No API key provided and the dataset is not publicly accessible. |
-| `403 Forbidden` | Your account's membership does not include dataset download permissions. |
-
-<Tip>
-  To construct a shareable download link for use in Excel or Google Sheets, pass your API key via the `apiKey` query parameter and set `$format=csv`. The link will redirect to a pre-signed URL valid for a short time window.
-</Tip>
+|---|---|
+| `400` | Invalid filter or column, unsupported `$` parameter, or `$top` combined with `$last`. |
+| `401` | Missing or invalid API key. |
+| `403` | The dataset does not exist or you cannot read it. |
+| `409` | A transposed file is not available. |

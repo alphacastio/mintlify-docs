@@ -4,7 +4,7 @@ sidebarTitle: "Other clients"
 description: "Connect VS Code, Zed, Windsurf, and any custom MCP client to the Alphacast MCP server — hosted (OAuth) or local (npx)."
 ---
 
-Every client can reach Alphacast either way. The **hosted** server lives at `https://mcp.alphacast.io/mcp` and authenticates with OAuth; the **local** npm package runs as a subprocess via `npx` and authenticates with `ALPHACAST_API_KEY`. Both expose the same 32 tools.
+Every client can reach Alphacast either way. The **hosted** server lives at `https://mcp.alphacast.io/mcp` and authenticates with OAuth; the **local** npm package runs as a subprocess via `npx` and authenticates with `ALPHACAST_API_KEY`. Both offer the same 35 tools (26 if your Workspace has catalog exploration turned off).
 
 ## Hosted (remote, OAuth)
 
@@ -115,5 +115,5 @@ For the hosted server, Windsurf accepts a remote URL directly:
 
 You have two options when building your own MCP client with the [official SDKs](https://modelcontextprotocol.io/clients):
 
-- **Hosted** — connect over the Streamable HTTP transport to `https://mcp.alphacast.io/mcp`. The endpoint is an OAuth 2.0 protected resource (authorization-code + PKCE against `https://auth.alphacast.io/`); it advertises its metadata at `/.well-known/oauth-protected-resource` and supports Dynamic Client Registration, so a spec-compliant client can discover and complete the flow automatically. Present the resulting token as a `Bearer` header.
+- **Hosted** — connect over the Streamable HTTP transport to `https://mcp.alphacast.io/mcp`. The endpoint is an OAuth 2.0 protected resource (authorization-code + PKCE against `https://auth.alphacast.io/`); it publishes protected resource metadata at `/.well-known/oauth-protected-resource`, which names the authorization server and the supported scopes. Send the access token in a `Bearer` header. The authorization server does not offer dynamic client registration. It advertises support for Client ID Metadata Documents. If your client cannot use them, use the local option with an API key, or write to [hello@alphacast.io](mailto:hello@alphacast.io).
 - **Local** — spawn the server as a child process (`npx -y @alphacast/mcp`) with `ALPHACAST_API_KEY` in the environment, then connect via the SDK's stdio transport. No other handshake or registration step is required.

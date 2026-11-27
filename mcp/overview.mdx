@@ -1,21 +1,21 @@
 ---
 title: "Alphacast MCP Server"
 sidebarTitle: "Overview"
-description: "Connect Claude Code and Codex to Alphacast. Search the catalog, download datasets, browse 30+ data providers, look up tickers, and build pipelines from natural-language prompts."
+description: "Connect Claude, Codex, Cursor and other MCP clients to Alphacast. Search data, download datasets, use your Workspace methodologies, and build pipelines."
 ---
 
-The Alphacast Model Context Protocol (MCP) server lets AI coding agents interact with the Alphacast platform through structured tool calls. Search the curated catalog, download dataset rows, browse 30+ external data providers, look up market tickers, and build full data pipelines — all from inside Claude Code or Codex.
+The Alphacast Model Context Protocol (MCP) server lets AI assistants and coding agents work with Alphacast through structured tool calls. They can search the curated catalog, read dataset rows, load your Workspace's analytical methodologies, browse external data providers, look up market tickers, and build data pipelines.
 
 ## Two ways to connect
 
-The same 32 tools are available through two transports. Pick whichever fits your client and environment — both expose identical functionality.
+The same 35 tools are available through two transports. Pick whichever fits your client and environment. A few data tools behave differently: for large results, the hosted server can return temporary download links and the local server can save files on your machine.
 
 <CardGroup cols={2}>
   <Card title="Hosted (remote)" icon="cloud">
     Point your client at `https://mcp.alphacast.io/mcp`. Nothing to install — no Node.js, no npm, no API key. You sign in once through your browser with **OAuth** and your Alphacast account. Best for most users and for clients that support remote MCP servers.
   </Card>
   <Card title="Local (npm)" icon="terminal">
-    Your client spawns the `@alphacast/mcp` package as a local subprocess via `npx -y @alphacast/mcp` over stdio. Requires Node.js 18+ and an `ALPHACAST_API_KEY`. Best for offline-ish setups, CI, or clients that don't yet support remote servers or OAuth.
+    Your client spawns the `@alphacast/mcp` package as a local subprocess via `npx -y @alphacast/mcp` over stdio. Requires Node.js 18+ and an `ALPHACAST_API_KEY`. Best for CI, saving large results to local files, or clients that don't yet support remote servers or OAuth.
   </Card>
 </CardGroup>
 
@@ -24,13 +24,17 @@ The same 32 tools are available through two transports. Pick whichever fits your
 | Endpoint | `https://mcp.alphacast.io/mcp` | `npx -y @alphacast/mcp` (stdio) |
 | Requirements | A browser to sign in | Node.js 18+ installed |
 | Authentication | OAuth (browser login) | `ALPHACAST_API_KEY` env var |
-| Tools | All 32 | All 32 |
+| Tools | 35 | 35 |
+| Large results | Bounded rows and temporary download links | Local temporary files |
 
-Both authenticate as your Alphacast account and respect the same repository permissions. See [Authentication](/mcp/authentication) for the details of each, then follow the [Quickstart](/mcp/quickstart) or your client's [configuration guide](/mcp/configuration/claude-code).
+Both authenticate as your Alphacast account and respect the same repository permissions. API and MCP access is available on every plan, including Free and Explorer. Catalog access and download volume depend on your [plan](https://www.alphacast.io/pricing). Creating pipelines requires a plan that can create content. See [Authentication](/mcp/authentication) for the details of each, then follow the [Quickstart](/mcp/quickstart) or your client's [configuration guide](/mcp/configuration/claude-code).
 
 ## What you can do
 
 <CardGroup cols={2}>
+  <Card title="Use Workspace methodologies" icon="users" href="/mcp/tools/workspace">
+    Load the instructions and data scope of the agents in your Workspace, and apply them in your own assistant.
+  </Card>
   <Card title="Discover data" icon="magnifying-glass">
     Search the curated Alphacast catalog. Browse 30+ providers — FRED, BLS, World Bank, OECD, IMF, BIS, ECB, Eurostat, Banxico, and many more — without learning each provider's native API.
   </Card>
@@ -41,10 +45,10 @@ Both authenticate as your Alphacast account and respect the same repository perm
     Search public market tickers, ETFs, indexes, and ISINs, then pull historical OHLCV prices over `5y`, `ytd`, `max`, and other lookback periods.
   </Card>
   <Card title="Build pipelines" icon="diagram-project">
-    Create pipelines, add or edit steps, run them, and preview the output of any step. Auto-validates and auto-runs after every mutation.
+    Create pipelines, add, edit or delete steps, and preview step output. Alphacast validates and runs the pipeline after each change.
   </Card>
   <Card title="Browse providers" icon="globe">
-    Walk hierarchical catalogs, search series by keyword, and preview or fetch full historical data.
+    Walk hierarchical catalogs, search series by keyword, and fetch historical data.
   </Card>
   <Card title="Author charts" icon="chart-bar">
     Look up chart-authoring recipes for any Grapher chart type, validate configurations before saving, and inspect existing chart metadata.
@@ -58,16 +62,21 @@ Both authenticate as your Alphacast account and respect the same repository perm
     Connect a client and run your first prompt in under five minutes.
   </Card>
   <Card title="Configuration" icon="gear" href="/mcp/configuration/claude-code">
-    Step-by-step setup for Claude Code and Codex.
+    Step-by-step setup for each client.
   </Card>
   <Card title="Tools reference" icon="wrench" href="/mcp/tools/overview">
-    All 32 tools, grouped by capability, with input schemas and example prompts.
+    All 35 tools, grouped by capability, with input schemas and example prompts.
   </Card>
   <Card title="Examples" icon="lightbulb" href="/mcp/examples">
     End-to-end walkthroughs that combine multiple tools to solve real research workflows.
   </Card>
 </CardGroup>
 
-## Safety boundaries
+<span id="safety-boundaries" style={{ scrollMarginTop: "8rem" }} />
 
-The server intentionally does **not** expose destructive operations. Repositories, datasets, and pipelines can only be deleted from the Alphacast web UI — never from an agent. Of the 32 tools, 28 are read-only; the 4 write tools (`create_pipeline`, `add_pipeline_step`, `edit_pipeline_step`, `delete_pipeline_step`) are scoped to pipeline authoring. Provider API keys are managed through the [Alphacast settings](https://www.alphacast.io/settings) web UI.
+## Tool availability and write access
+
+- There are no tools to delete repositories, datasets or whole pipelines.
+- Six tools need the `mcp:write` scope on the hosted server: the four pipeline editing tools, plus `get_step_preview` and `get_step_data`. The last two can start pipeline runs. See [Safety boundaries](/mcp/tools/overview#safety-boundaries).
+- If your Workspace has catalog exploration turned off, the server omits the catalog search, external provider and ticker tools, and lists 26 tools. See [Tool availability](/mcp/tools/overview#tool-availability).
+- You manage provider API keys in [Alphacast settings](https://www.alphacast.io/settings).

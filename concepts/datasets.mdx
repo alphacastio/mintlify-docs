@@ -1,119 +1,118 @@
 ---
-title: "Datasets: Storing and Accessing Time-Series Data"
+title: "Work with a dataset"
 sidebarTitle: "Datasets"
-description: "Datasets hold tabular and time-series data inside Alphacast repositories. Upload CSV files, query with OData filters, and download in CSV, JSON, XLSX, or TSV."
+description: "Use a dataset page to check coverage, filter data, preview charts, review versions, subscribe, and download."
 ---
 
-A dataset is where your actual data lives in Alphacast. Every dataset belongs to a repository and holds a table of rows and columns — typically a time series with one date column and one or more value columns. You can upload data into a dataset, query it with OData-style filters, and download results as CSV, JSON, XLSX, or TSV.
+A dataset is a table of data that lives in a [repository](/concepts/repositories). To find one, see [Explore](/explore).
 
-## Dataset fields
+<span id="dataset-fields" style={{ scrollMarginTop: "8rem" }} />
 
-When you create a dataset, the following fields are available:
+<span id="column-types" style={{ scrollMarginTop: "8rem" }} />
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `name` | Yes | Display name for the dataset |
-| `repositoryId` | Yes | ID of the repository that owns this dataset |
-| `description` | No | Human-readable description |
-| `sourceUrl` | No | URL of the original data source |
-| `sourceName` | No | Name of the original data source |
+## How a dataset is structured
 
-## Column types
+| Part | What it is |
+|---|---|
+| Date column | When each observation applies. |
+| Entity columns | What each row describes, such as a country or a sector. The date is also one of the columns that identify a row. |
+| Variables | The values themselves, such as an index or an amount. |
 
-Each column in a dataset has a `dataType` and an `isEntity` flag:
+## Check what the dataset contains
 
-- **`Date`** — A date or datetime column. Entity columns of type `Date` are used as the time axis.
-- **`String`** — A text column. Entity string columns act as dimension labels (e.g., country, sector).
-- **`Decimal`** — A numeric value column. These are the measurements in your time series.
+The top of the page can show the dataset name, repository, source, publication, and **Last update**. If a pipeline or another dataset produced it, the page can say so.
 
-Columns where `isEntity` is `true` are dimension columns (they identify a row). Columns where `isEntity` is `false` are value columns (they hold the measurements).
+**Dataset Information** shows the dates covered, and the source and description when available. Click **Show more** to read a long description.
 
-## API endpoints
+<Warning>
+  Read any **Dataset Deprecated** notice before you use the data. If the notice names a replacement, click **Switch to new dataset**.
+</Warning>
 
-The base URL for all dataset operations is `https://api.alphacast.io`.
+<Frame>
+  <img src="/images/app/dataset.jpg" alt="Dataset Overview tab with the header actions, Dataset Information, and the data table" />
+</Frame>
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/datasets` | List all datasets you have access to |
-| `POST` | `/datasets` | Create a new dataset |
-| `GET` | `/datasets/{id}` | Get a dataset's metadata |
-| `PUT` | `/datasets/{id}` | Rename a dataset or move it to another repository |
-| `DELETE` | `/datasets/{id}` | Delete a dataset |
-| `GET` | `/datasets/{id}/data` | Download dataset data |
-| `PUT` | `/datasets/{id}/data` | Upload data into a dataset |
-| `GET` | `/datasets/{id}/date-stats` | Get the date range and inferred frequency |
+## Preview and filter data
 
-## Creating a dataset
+The preview table shows the most recent rows first. Values in the preview can be rounded.
 
-```bash
-curl -X POST https://api.alphacast.io/datasets \
-  -u YOUR_API_KEY: \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "US GDP Quarterly",
-    "repositoryId": 1042,
-    "description": "Quarterly US GDP in billions of chained 2017 dollars",
-    "sourceUrl": "https://fred.stlouisfed.org/series/GDPC1",
-    "sourceName": "FRED"
-  }'
-```
+<Steps>
+  <Step title="Open the filters">
+    Click **Filter data**.
+  </Step>
+  <Step title="Choose what to keep">
+    Set a date range, pick entity values such as countries, and select variables.
+  </Step>
+  <Step title="Apply">
+    Click **Apply Filters**. The filters also apply to the chart preview and to downloads.
+  </Step>
+</Steps>
 
-## Downloading data
+If you see **Data Preview**, your access includes only a sample. The table and chart can omit rows and periods.
 
-Use `GET /datasets/{id}/data` to download a dataset's contents. You can shape the response with OData query parameters.
+A chart preview isn't available for every dataset. It needs numeric variables, and it can be unavailable when you select many variables or the dataset has many entity columns. Select fewer variables, or filter or group entities with a [pipeline](/steps/overview).
 
-### Query parameters
+## Page tabs
 
-| Parameter | Description |
-|-----------|-------------|
-| `$select` | Comma-separated list of column names or IDs to include |
-| `$filter` | OData filter expression (e.g., `Date ge '2020-01-01'`) |
-| `$top` | Maximum number of rows to return |
-| `$last` | Return only rows from the last N date periods |
-| `$format` | Output format: `csv` (default), `json`, `xlsx`, or `tsv` |
+| Tab | What it shows | Notes |
+|---|---|---|
+| **Overview** | Information, data table, and chart preview. | |
+| **Charts** | Charts published with this data. | Sign in to browse them. |
+| **Related Datasets** | Datasets related to this one. | |
+| **Versions** | Data versions and activity. With more than one version, you can **Compare Versions**. | Shown when signed in. |
+| **Dataset usage** | Where the dataset is used. | Repository admins only. |
+| **Settings** | Dataset configuration. | People who can edit the repository. |
 
-<CodeGroup>
+## Dataset actions
 
-```bash Download as CSV
-curl "https://api.alphacast.io/datasets/5801/data" \
-  -u YOUR_API_KEY:
-```
+The actions you see depend on your sign-in, plan, permissions, and the dataset. On small screens, some are under **More dataset actions**.
 
-```bash Filter by date range
-curl "https://api.alphacast.io/datasets/5801/data?\$filter=Date%20ge%20'2020-01-01'&\$format=json" \
-  -u YOUR_API_KEY:
-```
+| Action | What it does |
+|---|---|
+| **Analyze with AI** | Opens [Alphacast AI](/ai) focused on this dataset. |
+| **Download** or **Download preview** | Opens the **Use this data** panel. |
+| **Subscribe** | Notifies you when a new version is available. Requires full access to the dataset's data. Click **Unsubscribe** to stop. See [notifications](/notifications). |
+| **Clip Dataset** | Saves it to your [Clips](/clips). Requires full access to the dataset's data. |
+| **Transform Data** | Creates a [pipeline](/steps/overview) that starts from this dataset. Requires a plan that can create content. |
+| **Upload data** | Adds data to a dataset you can edit. Not shown when a connection or a pipeline updates it. See [your datasets](/your-data/datasets). |
+| **Sync Now** | Requests an update from the connected source, when the dataset supports it. |
 
-```bash Last 8 periods
-curl "https://api.alphacast.io/datasets/5801/data?\$last=8" \
-  -u YOUR_API_KEY:
-```
+Deprecated datasets don't offer **Subscribe**, **Clip Dataset**, or **Transform Data** in the page header.
 
-</CodeGroup>
+<span id="downloading-data" style={{ scrollMarginTop: "8rem" }} />
 
-<Tip>
-For large datasets with no filters, the API returns a pre-signed download URL instead of streaming the file directly. Follow the redirect to download the file.
-</Tip>
+## Use this data
 
-## Date stats
+The **Use this data** panel has two parts:
 
-Use the date-stats endpoint to inspect a dataset's temporal coverage before downloading it.
+- **Download**: choose XLSX, CSV, JSON, or TSV, or click **Copy Link**. XLSX isn't offered when the data is too large for a spreadsheet. Turn on **Dates as columns** to transpose XLSX, CSV, or TSV, or **Include Variable IDs** to add column IDs.
+- **Connect data**: follow the steps for [AI assistants](/connect/assistants), [Excel](/connect/excel), [Google Sheets](/connect/google-sheets), or [Python](/connect/python).
 
-```bash
-curl "https://api.alphacast.io/datasets/5801/date-stats" \
-  -u YOUR_API_KEY:
-```
+Your [plan](https://www.alphacast.io/pricing) sets which data you can download in full and how much you can download each month. When you reach your limit, the page can show **Download limit reached**.
 
-```json
-{
-  "inferedFreq": "Q",
-  "minDate": "1947-01-01",
-  "maxDate": "2024-10-01"
-}
-```
+<Warning>
+  Download links and code from this panel can contain your API key. Treat them as private.
+</Warning>
 
-The `inferedFreq` field returns the detected cadence of the data (e.g., `D` for daily, `M` for monthly, `Q` for quarterly, `A` for annual).
+<span id="api-endpoints" style={{ scrollMarginTop: "8rem" }} />
 
-<Note>
-If the frequency cannot be determined from cached metadata, the API will scan the dataset's date column to infer it on the fly. This may take a moment for large datasets.
-</Note>
+<span id="creating-a-dataset" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="query-parameters" style={{ scrollMarginTop: "8rem" }} />
+
+<span id="date-stats" style={{ scrollMarginTop: "8rem" }} />
+
+## Work with datasets from code
+
+To manage datasets programmatically, use the API reference: [list datasets](/api/datasets/list), [get a dataset](/api/datasets/get), [rename or move](/api/datasets/get#rename-or-move-a-dataset), [get columns](/api/datasets/columns), [create](/api/datasets/create), [upload data](/api/datasets/upload), [download data](/api/datasets/data), and [delete](/api/datasets/delete).
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Ask about this data" icon="sparkles" href="/ai">
+    Summarize, chart, transform, or compare.
+  </Card>
+  <Card title="Connect your tools" icon="plug" href="/connect">
+    Use the data where you work.
+  </Card>
+</CardGroup>

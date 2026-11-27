@@ -63,13 +63,11 @@ Response includes `valid` (boolean), `issues` (array of `{severity, code, messag
 Fetches a chart's metadata and its full Grapher configuration from a chart URL or slug. Also returns pipeline ownership when the chart is backed by a pipeline step, so you can navigate directly to the editor.
 
 <ParamField body="chartUrl" type="string" required>
-  Full Alphacast chart URL (e.g. `https://www.alphacast.io/p/account/charts/chart-slug-12345`) or just the chart slug.
+  Full Alphacast chart URL (for example `https://www.alphacast.io/p/{account}/charts/chart-slug-12345`) or just the chart slug. The slug must end in `-` followed by the numeric chart ID.
 </ParamField>
 
 Response includes `chartId`, `slug`, `title`, `chartUrl`, the full `grapher` config object, and an optional `pipeline` block with `pipelineId`, `stepId`, and `editUrl`.
 
 **Example prompt**
 
-> "Show me the Grapher config of the chart at https://www.alphacast.io/charts/12345 — I want to replicate its style."
-
-**Underlying endpoint:** `GET /charts/{id}/config`.
+> "Show me the Grapher config of the chart at https://www.alphacast.io/p/{account}/charts/chart-slug-12345. I want to replicate its style."
